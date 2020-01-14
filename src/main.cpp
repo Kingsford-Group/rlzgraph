@@ -28,25 +28,22 @@ int main(int argc, char* argv[]){
 
     if (success){
         
-        // read inputs (assuming ref only contains a long ref string and inputs contains only strings separated by new line)
-        ifstream inputF(Input_ref);
-        if (!inputF.good()){
-            cerr << "Error opening " << Input_ref << endl;
-            return 1;
-        }
-
         string ref;
-        inputF >> ref;
-        RLZgraph graph (ref);
+        vector<string> strings = readFASTA(Input_strings);
+        int id = 0;
 
-        ifstream inputS(Input_strings);
-        string line;
-        int i = 0;
-        while(getline(inputS, line)){
-            graph.addString(line);
-            i ++;
+        if (Input_ref != ""){
+            vector<string> refv = readFASTA(Input_ref);
+            ref = refv[0]; 
+        } else {
+            ref = strings[0];
+            id = 1;
         }
-        cout << i << endl;
+
+        RLZgraph graph (ref);
+        for(; id<strings.size(); id++){
+            graph.addString(strings[id]);
+        }
         
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
         auto it = graph.phraseStarts.begin();
