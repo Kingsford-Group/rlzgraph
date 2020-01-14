@@ -1,8 +1,16 @@
-SRCS=src/main.cpp src/RLZgraph.cpp src/RLZfact.cpp src/bitvector.cpp
-TESTSRCS=test/test.cpp src/RLZgraph.cpp src/RLZfact.cpp src/bitvector.cpp
+BOOST=/home/yutongq/SQUID/Tools/boost_1_64_0/
+BAMTOOLS = /home/yutongq/SQUID/Tools/bamtools/usr/local/
+GLPK = /home/yutongq/SQUID/Tools/glpk-4.62/bin
 
-CXX = g++ -std=c++11
+CC = gcc
+CXX = g++
+INCLUDES = -g -I $(BAMTOOLS)/include/bamtools -I $(GLPK)/include -I $(BOOST)
+CXXFLAGS = -std=c++11 $(INCLUDES)
+LDADD = $(BAMTOOLS)/lib/libbamtools.a $(GLPK)/lib/libglpk.a
 LDLIBS = -lz -lm
+
+SRCS=src/main.cpp src/RLZgraph.cpp src/RLZfact.cpp src/bitvector.cpp src/SuffixTree.cpp
+TESTSRCS=test/test.cpp src/RLZgraph.cpp src/RLZfact.cpp src/bitvector.cpp src/SuffixTree.cpp
 
 all: bin/main 
 

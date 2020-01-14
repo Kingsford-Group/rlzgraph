@@ -7,25 +7,50 @@
 #include <vector>
 #include <map>
 #include "RLZfact.h"
+#include "SuffixTree.h"
+
+struct backPhrase{
+    int stringID;
+    long int rank;
+    bool isend;
+
+    backPhrase(int id, long int poss, bool end){
+        stringID = id;
+        rank = poss;
+        isend = end;
+    }
+}
 
 class RLZgraph{
     public: 
-    map<int, int> H; //(pos, breakid)
-    map<int, vector<pair<int, int> > > HB; //(breakid, [(inputid, inputpos)])
+    string ref;
+    SuffixTree tree;
+
+    vector<vector<backPhrase> > colors;
+    boost::dynamic_bitset<> ends;
+    // map<int, int> H; //(pos, breakid)
+    // map<int, vector<pair<int, int> > > HB; //(breakid, [(inputid, inputpos)])
     vector<RLZfact> rlzarr; // a vector of rlz factorizations. one for each intpu string
-    vector<int> BR; //bit array
+    // boost::dynamic_bitset<> BR; //bit array
 
-    void construction(vector<RLZfact> factarr);
+    // initial graph with only the reference
+    RLZgraph(string ref);
+    
+    void addString(string s);
+    // void construction(string ref, vector<RLZfact> factarr);
 
-    //construction
-    RLZgraph(vector<RLZfact> factarr);
-    RLZgraph(string ref, vector<string> inputStrings);
+    // //construction
+    // RLZgraph(string ref, vector<RLZfact> factarr);
+    // RLZgraph(string ref, vector<string> inputStrings);
 
     // utils
     
 
     // traversals
-    vector<int> adjQuery(int pos);
+    vector<long int> adjQuery(long int pos); // returns neighbors of the node defined by break at position pos
+    string access(int pos); //returns substring of the node defined by break at position pos
+    void DFS(long int curr_pos, vector<bool> visited);
+    void print_DFS();
 
     // updates
     void insertSeq(string seq);
