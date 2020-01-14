@@ -26,6 +26,8 @@ class RLZgraph{
     public: 
     string ref;
     SuffixTree tree;
+    long int numNodes=0;
+    long int numEdges=0;
 
     map<long int, vector<backPhrase> > phraseEnds;
     map<long int, vector<backPhrase> > phraseStarts;
@@ -36,6 +38,7 @@ class RLZgraph{
     // boost::dynamic_bitset<> BR; //bit array
 
     // initial graph with only the reference
+    RLZgraph():ref(""), tree(""){};
     RLZgraph(string ref);
     
     void addString(string s);

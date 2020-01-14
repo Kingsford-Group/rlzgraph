@@ -15,7 +15,6 @@ void RLZgraph::addString(string s){
     RLZfact newFact (ref, tree, s);
     int colorid = rlzarr.size();
     rlzarr.push_back(newFact);
-    boost::dynamic_bitset<> color (s.length());
     int c = 0;
     for (Phrase p : newFact.phrases){
         // for(int i=0;i<p.length;i++){
@@ -25,6 +24,8 @@ void RLZgraph::addString(string s){
         if (it== phraseEnds.end()){
             vector<backPhrase> newVec;
             newVec.push_back(backPhrase(colorid, c));
+            phraseEnds[p.pos+p.length-1] = newVec;
+            if (p.pos+p.length-1 < ref.length()-1) numNodes += 1;
         } else {
             phraseEnds[p.pos+p.length-1].push_back(backPhrase(colorid, c));
         }
@@ -33,9 +34,14 @@ void RLZgraph::addString(string s){
         if (it== phraseStarts.end()){
             vector<backPhrase> newVec;
             newVec.push_back(backPhrase(colorid, c));
+            phraseStarts[p.pos] = newVec;
+
+            auto itEnds = phraseEnds.find(p.pos);
+            if (itEnds == phraseEnds.end()) numNodes+=1;
         } else {
             phraseStarts[p.pos].push_back(backPhrase(colorid, c));
         }
+        numEdges ++;
         c++;
     }
 }

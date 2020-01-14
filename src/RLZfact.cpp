@@ -23,7 +23,7 @@ RLZfact::RLZfact(string & ref, SuffixTree & tree, string s){
     int idd = 0;
     while (i< s.length()) {
         // cout << "--------------------- " << i << endl;
-        cout << "--- Adding from position: " << i << endl;
+        // cout << "--- Adding from position: " << i << endl;
         pair<int, int> ret = tree.traverse(s.substr(i, s.length()-i));
         Phrase phrase (idd, ret.first, ret.second);
         phrases.push_back(phrase);

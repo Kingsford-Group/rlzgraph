@@ -1,10 +1,12 @@
 #include <iostream>
 #include <stdio.h> 
+#include <fstream>
 #include <stdlib.h>
 #include <vector>
 #include <map>
 #include "RLZfact.h"
 #include "RLZgraph.h"
+#include "util.h"
 #include <boost/dynamic_bitset.hpp>
 
 using namespace std;
@@ -20,13 +22,57 @@ using namespace std;
 //     for(int j=i-1;j>=0;j--) cout << num[j];
 // }
 
+int main(int argc, char* argv[]){
 
-int main(){
-    string ref = "ATATTCGACGAGAT";
-    string s1 = "ATAATTCGATTCGAT";
+    bool success = parse_argument(argc, argv);
 
-    RLZgraph graph(ref);
-    graph.addString(s1);
+    if (success){
+        
+        // read inputs (assuming ref only contains a long ref string and inputs contains only strings separated by new line)
+        ifstream inputF(Input_ref);
+        if (!inputF.good()){
+            cerr << "Error opening " << Input_ref << endl;
+            return 1;
+        }
+
+        string ref;
+        inputF >> ref;
+        RLZgraph graph (ref);
+
+        ifstream inputS(Input_strings);
+        string line;
+        int i = 0;
+        while(getline(inputS, line)){
+            graph.addString(line);
+            i ++;
+        }
+        cout << i << endl;
+        
+        cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
+        auto it = graph.phraseStarts.begin();
+        while(it != graph.phraseStarts.end()){
+            printf("Pos: %lu, Phrase: ", it->first);
+            for (backPhrase p : it->second){
+                printf("(%u, %lu),", p.stringID, p.rank);
+            }
+            cout << endl;
+            it++;
+        }
+
+                
+        cout << "Size of Ends: " << graph.phraseEnds.size() <<endl; 
+        it = graph.phraseEnds.begin();
+        while(it != graph.phraseEnds.end()){
+            printf("Pos: %lu, Phrase: ", it->first);
+            for (backPhrase p : it->second){
+                printf("(%u, %lu),", p.stringID, p.rank);
+            }
+            cout << endl;
+            it++;
+        }
+
+        printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
+    }
     
     // string ref = "ATATTCGACGAGAT";
     // vector<long int> Q ={0,2,3,1};

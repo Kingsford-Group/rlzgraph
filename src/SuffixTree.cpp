@@ -139,20 +139,20 @@ SuffixTree::SuffixTree(string ref){
 
 // go as far as possible in the tree.
 pair<int, int> SuffixTree::traverse(string s){
-    cout << "Traverse" <<endl;
+    // cout << "Traverse" <<endl;
     int i = 0;
     Node * next = root;
     int length = 0;
     int inEdge = 0;
     int start = -1;
     while (i < s.length()){
-        cout << "Curr Node: " << next->label << endl;
+        // cout << "Curr Node: " << next->label << endl;
         // for (int i=0;i<ALP_SIZE;i++){
             // cout << next->children[i] << ", ";
         // }
         // cout << endl;
 
-        printf("InEdge: %u, Length: %u\n", inEdge,length);
+        // printf("InEdge: %u, Length: %u\n", inEdge,length);
         //cout <<next->start + inEdge <<endl;
         if (inEdge == length){
             if (next->children[getIdx(s[i])]!=NULL){
