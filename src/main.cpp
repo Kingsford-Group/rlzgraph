@@ -40,11 +40,16 @@ int main(int argc, char* argv[]){
             id = 1;
         }
 
+        cout << "Finished reading files." << endl;
+        cout << "Length of reference: " << ref.length() << endl;
+
         RLZgraph graph (ref);
+        cout << "Built the initial tree" << endl;
         for(; id<strings.size(); id++){
             graph.addString(strings[id]);
         }
-        
+        cout << "Finished adding sequences." << endl;
+/*
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
         auto it = graph.phraseStarts.begin();
         while(it != graph.phraseStarts.end()){
@@ -67,7 +72,7 @@ int main(int argc, char* argv[]){
             cout << endl;
             it++;
         }
-
+*/
         printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
     }
     

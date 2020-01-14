@@ -31,7 +31,7 @@ bool parse_argument(int argc, char * argv[]){
 vector<string> readFASTA(string filename){
     fstream input(filename);
     if (!input.good()) {
-        cerr << "BAD INPUT!" << endl;
+        cerr << "BAD INPUT!: " << filename << endl;
         exit(1);
     }
 
