@@ -35,6 +35,10 @@ void BitVector::clearBit(long pos){
     array[chunk] = array[chunk] ^ (1ul<<pos2);
 }
 
+void BitVector::setNumber(long number){
+    array[0] = number;
+}
+
 
 void BitVector::printNum(){
     unsigned long int num[this->length];
@@ -63,18 +67,7 @@ void BitVector::printNum(){
     cout << endl;
 }
 
-// BitVector::BitVector(string number){
-//     this->length = floor(log2(number))+1;
-//     if (length <= SIZE){
-//         array = new long int (number);
-//     } else{
-//         long int i = 0;
-//         long int curr = number;
-//         long int chunks = this->length / SIZE;
-//         while (i<chunks){
-//             array = new long int (curr);
-//             curr = curr >>SIZE;
-//             array ++;
-//         }
-//     }
-// }
+RankSelect::RankSelect(BitVector input){
+    long int chunk = input.length/SIZE;
+
+}

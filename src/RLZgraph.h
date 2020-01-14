@@ -8,26 +8,28 @@
 #include <map>
 #include "RLZfact.h"
 #include "SuffixTree.h"
+#include <boost/dynamic_bitset.hpp>
 
 struct backPhrase{
     int stringID;
     long int rank;
-    bool isend;
+    // bool isend;
 
-    backPhrase(int id, long int poss, bool end){
+    backPhrase(int id, long int poss){//, bool end){
         stringID = id;
         rank = poss;
-        isend = end;
+        // isend = end;
     }
-}
+};
 
 class RLZgraph{
     public: 
     string ref;
     SuffixTree tree;
 
-    vector<vector<backPhrase> > colors;
-    boost::dynamic_bitset<> ends;
+    map<long int, vector<backPhrase> > phraseEnds;
+    map<long int, vector<backPhrase> > phraseStarts;
+    // boost::dynamic_bitset<> ends;
     // map<int, int> H; //(pos, breakid)
     // map<int, vector<pair<int, int> > > HB; //(breakid, [(inputid, inputpos)])
     vector<RLZfact> rlzarr; // a vector of rlz factorizations. one for each intpu string

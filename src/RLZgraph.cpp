@@ -4,38 +4,54 @@
 using namespace std;
 
 //construction
-RLZgraph::RLZgraph(string ref){
-    tree (ref);
+RLZgraph::RLZgraph(string ref):tree(ref){
+    // tree (ref);
     this->ref = ref;
-    colors.resize(ref.length());
-    ends.resize(ref.length());
+    // colors.resize(ref.length());
+    // ends.resize(ref.length());
 }
 
 void RLZgraph::addString(string s){
     RLZfact newFact (ref, tree, s);
-    int colorid = rlzarr.length();
+    int colorid = rlzarr.size();
     rlzarr.push_back(newFact);
     boost::dynamic_bitset<> color (s.length());
     int c = 0;
-    for (Phrase p : newFact){
+    for (Phrase p : newFact.phrases){
         // for(int i=0;i<p.length;i++){
         //     colors[p.pos+i].append(backPhrase(colorid, c,false);
         // }
-        colors[p.pos+p.length-1].append(backPhrase(colorid, c, true));
-        ends[p.pos+p.length-1] = 1;
+        auto it = phraseEnds.find(p.pos+p.length-1);
+        if (it== phraseEnds.end()){
+            vector<backPhrase> newVec;
+            newVec.push_back(backPhrase(colorid, c));
+        } else {
+            phraseEnds[p.pos+p.length-1].push_back(backPhrase(colorid, c));
+        }
+
+        it = phraseStarts.find(p.pos);
+        if (it== phraseStarts.end()){
+            vector<backPhrase> newVec;
+            newVec.push_back(backPhrase(colorid, c));
+        } else {
+            phraseStarts[p.pos].push_back(backPhrase(colorid, c));
+        }
         c++;
     }
 }
 
-vector<long int> adjQuery(long int pos){
+vector<long int> RLZgraph::adjQuery(long int pos){
     vector<long int> neighbors;
-    if (ends[pos]){
-        for(backPhrase bp : colors[pos]){
+    auto it = phraseEnds.find(pos);
+    if (it != phraseEnds.end()){
+        for(backPhrase bp : phraseEnds[pos]){
             // if (bp.isend)
-            neighbors.append(rlzarr[bp.stringID][bp.rank+1].pos);
+            neighbors.push_back(rlzarr[bp.stringID].getPhrase(bp.rank+1).pos);
         }
     }
-    neighbors.push_back(ref[pos+1]);
+    neighbors.push_back(pos+1);
+
+    return neighbors;
 }
 // void RLZgraph::construction(string ref, vector<RLZfact> factarr){
 //     int breakid = 1;

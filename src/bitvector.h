@@ -18,6 +18,7 @@ class BitVector{
 
     void addBit(long pos);
     void clearBit(long pos);
+    void setNumber(unsigned long int number);
     void printNum();
 };
 
@@ -25,13 +26,17 @@ class RankSelect{
     public:
     BitVector array;
     vector<map<BitVector, vector<long>> > rankTable;   // key: number of ones, value: prefix sum array
-    vector<BitVector> prefixSum;
-    vector<BitVector> prefixSum2;
+    vector<unsigned long int> prefixSum;
+    vector<unsigned long int> prefixSum2;
 
     RankSelect(BitVector input);
 
     long rank(long i);    // number of 1s at or before position i;
     long select(long i);   // the i-th bit
+
+    private:
+    void prefixsum(BitVector array);
+    void prefixsum(vector<unsigned long int>);
 };
 
 

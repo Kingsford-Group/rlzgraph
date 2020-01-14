@@ -2,8 +2,6 @@
 
 using namespace std; 
 
-static int ALP_SIZE = 5; 
-
 Node::Node (int start, int *end, Node * root) { 
 
         this->children.resize(ALP_SIZE);
@@ -70,6 +68,7 @@ void SuffixTree::extendSuffixTree(int pos){
             // cout << "case 1" << endl;
             // cout << "Index: " << getIdx(text[activeEdge]) << endl;
             activeNode->children[getIdx(text[activeEdge])] = new Node(pos, &leafEnd, root);
+            activeNode->children[getIdx(text[activeEdge])]->label = pos - edgeLength(activeNode);
             // cout << activeNode ->children[getIdx(text[activeEdge])]->start<<endl;
             if (lastNewNode != NULL){
                 lastNewNode->suffixLink = activeNode;
@@ -98,12 +97,14 @@ void SuffixTree::extendSuffixTree(int pos){
             splitEnd = (int*) malloc(sizeof(int)); 
             *splitEnd = next->start + activeLength - 1; 
 
+            // the common path
             Node *split = new Node(next->start, splitEnd, root); 
-
             activeNode->children[getIdx(text[activeEdge])] = split;
 
+            // Corresponds to the newly added branch
             split->children[getIdx(text[pos])] = new Node(pos, &leafEnd, root);
-            split->children[getIdx(text[pos])]->label = activeLength;
+            split->children[getIdx(text[pos])]->label = pos - activeLength;
+            
             next->start += activeLength;
             split->children[getIdx(text[next->start])] = next;
 
@@ -117,7 +118,7 @@ void SuffixTree::extendSuffixTree(int pos){
         remainingSuffixCount--;
         if (activeNode==root && activeLength>0){
             activeLength--;
-            activeEdge = pos - remainingSuffixCount+1;
+            activeEdge = pos - remainingSuffixCount + 1;
         } else if (activeNode!=root){
             activeNode = activeNode -> suffixLink;
         }
@@ -138,21 +139,21 @@ SuffixTree::SuffixTree(string ref){
 
 // go as far as possible in the tree.
 pair<int, int> SuffixTree::traverse(string s){
-    // cout << "Traverse" <<endl;
+    cout << "Traverse" <<endl;
     int i = 0;
     Node * next = root;
     int length = 0;
     int inEdge = 0;
-    int start = RAND_MAX;
+    int start = -1;
     while (i < s.length()){
-        // cout << next->start << ": ";
+        cout << "Curr Node: " << next->label << endl;
         // for (int i=0;i<ALP_SIZE;i++){
             // cout << next->children[i] << ", ";
         // }
         // cout << endl;
 
-        // printf("InEdge: %u, Length: %u\n", inEdge,length);
-        cout <<next->start + inEdge <<endl;
+        printf("InEdge: %u, Length: %u\n", inEdge,length);
+        //cout <<next->start + inEdge <<endl;
         if (inEdge == length){
             if (next->children[getIdx(s[i])]!=NULL){
                 inEdge = 1;
@@ -160,7 +161,6 @@ pair<int, int> SuffixTree::traverse(string s){
                 start = next->label;
                 length = edgeLength(next);
             }
-            else if (start == RAND_MAX) return make_pair(-1,1);
             else return make_pair(start, i);
         }
         else {

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <boost/dynamic_bitset.hpp>
+#include "SuffixTree.h"
 
 using namespace std;
 
@@ -30,13 +31,14 @@ class RLZfact{
     // boost::dynamic_bitset<> Bitarray;
     // long int inputLen;
     // int phraseLength = 15;
-    vector<Phrases> phrases;
+    vector<Phrase> phrases;
     
     RLZfact();
     // RLZfact(vector<long int> Qarr, map<long int, long int> Bmap, vector<long int> B2, boost::dynamic_bitset<> bitarray, long int len); // parse from processed RLZ fact.
-    RLZfact(vector<Phrases> phrases);
+    RLZfact(vector<Phrase> phrases);
     RLZfact(string & ref, SuffixTree & tree, string s); // actually do RLZ factorization
     
+    Phrase getPhrase(long int rank);
 };
 
 #endif

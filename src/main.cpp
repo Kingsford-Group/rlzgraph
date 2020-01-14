@@ -23,41 +23,47 @@ using namespace std;
 
 int main(){
     string ref = "ATATTCGACGAGAT";
-    vector<long int> Q ={0,2,3,1};
-    vector<long int> B2 ={0,3,9,14};
-    map<long int, long int> B;
-    B[0]=0;
-    B[3]=1;
-    B[9]=2;
-    B[14]=3;
+    string s1 = "ATAATTCGATTCGAT";
 
-    long int len=15;
+    RLZgraph graph(ref);
+    graph.addString(s1);
     
-    boost::dynamic_bitset<> Bitarray(len);
-    Bitarray[0] = 1;
-    Bitarray[3] = 1;
-    Bitarray[9] = 1;
-    Bitarray[14] = 1;
-    // int b =1;
-    // b = (b << 14) | (1<< 11)|(1<<5)|1;
-    // cout << b << endl;
-    // printf("%16s\n", b);
-    RLZfact fact(Q, B, B2, Bitarray, len);
+    // string ref = "ATATTCGACGAGAT";
+    // vector<long int> Q ={0,2,3,1};
+    // vector<long int> B2 ={0,3,9,14};
+    // map<long int, long int> B;
+    // B[0]=0;
+    // B[3]=1;
+    // B[9]=2;
+    // B[14]=3;
 
-    vector<RLZfact> factarr = {fact};
+    // long int len=15;
     
-    RLZgraph graph(ref, factarr);
+    // boost::dynamic_bitset<> Bitarray(len);
+    // Bitarray[0] = 1;
+    // Bitarray[3] = 1;
+    // Bitarray[9] = 1;
+    // Bitarray[14] = 1;
+    // // int b =1;
+    // // b = (b << 14) | (1<< 11)|(1<<5)|1;
+    // // cout << b << endl;
+    // // printf("%16s\n", b);
+    // RLZfact fact(Q, B, B2, Bitarray, len);
 
-    for (int i = 0; i < 5; i++){
-        cout << i <<": " ;
-        for(pair<long int, long int> p : graph.HB[i])
-            printf("(%u,%u)", p.first, p.second);
-        cout << endl;
-    }
+    // vector<RLZfact> factarr = {fact};
+    
+    // RLZgraph graph(ref, factarr);
 
-    for(auto it = graph.H.cbegin();it!=graph.H.cend();++it)
-        cout << it->first << ": " << it->second << endl;
+    // for (int i = 0; i < 5; i++){
+    //     cout << i <<": " ;
+    //     for(pair<long int, long int> p : graph.HB[i])
+    //         printf("(%u,%u)", p.first, p.second);
+    //     cout << endl;
+    // }
 
-    graph.print_DFS();
+    // for(auto it = graph.H.cbegin();it!=graph.H.cend();++it)
+    //     cout << it->first << ": " << it->second << endl;
+
+    // graph.print_DFS();
     // printdec2bin(graph.BR, len);
 }

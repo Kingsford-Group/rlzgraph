@@ -3,12 +3,25 @@
 #include "../src/RLZgraph.h"
 
 int main(){
-    long int length = 66;
+    string ref = "ATATTCGACGAGAT";
+    string s1 = "ATAATTCGATTCGAT";
+    string s2 = "ATTTCGAGATATA";
 
-    BitVector bit (length);
-    bit.addBit(62);
-    bit.addBit(65);
-    bit.clearBit(62);
+    RLZgraph graph(ref);
 
-    bit.printNum();
+    // graph.addString("TTCGA");
+    graph.addString(s1);
+    graph.addString(s2);
+
+    int i = 0;
+    for (RLZfact fact : graph.rlzarr){
+        printf("The %u th string: ",i);
+        for (int j=0;j<fact.phrases.size();j++){
+            printf("(%u, %u)", fact.getPhrase(j).pos, fact.getPhrase(j).length);
+        }
+        cout << endl;
+        i++;
+    }
+
+    return 0;
 }
