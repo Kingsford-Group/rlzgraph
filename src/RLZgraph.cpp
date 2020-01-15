@@ -12,7 +12,8 @@ RLZgraph::RLZgraph(string ref):tree(ref){
 }
 
 void RLZgraph::addString(string s){
-    RLZfact newFact (ref, tree, s);
+    int id = rlzarr.size();
+    RLZfact newFact (ref, tree, s, id);
     int colorid = rlzarr.size();
     rlzarr.push_back(newFact);
     int c = 0;
@@ -58,6 +59,38 @@ vector<long int> RLZgraph::adjQuery(long int pos){
     neighbors.push_back(pos+1);
 
     return neighbors;
+}
+
+// parameters: position in ref; curr break serves as an END
+vector<long int> RLZgraph::adjQuery(long int pos, long int color, long int rank){
+    long int ref_pos;
+    bool isEnd = false;
+    Phrase curr = rlzarr[color].getPhrase(rank);
+    if (pos == curr.pos+curr.length-1) isEnd = true;
+    if (isEnd){
+        ref_pos = rlzarr[color].getPhrase(rank+1).pos;
+        rank+=1;
+    }
+    else {
+        ref_pos = pos+ 1;
+    }
+    vector<long int> toRet {ref_pos, color, rank};
+    return toRet;
+}
+
+string RLZgraph::reconstruct(long int color){
+    long int rank = 0;
+    Phrase curr = rlzarr[color].getPhrase(rank);
+    string s = "";
+    long int pos = curr.pos;
+    do {
+        s += ref[pos];
+        vector<long int > next = adjQuery(pos, color, rank);
+        rank = next[2];
+        pos = next[0];
+    }while (rank < rlzarr[color].size());
+
+    return s;
 }
 // void RLZgraph::construction(string ref, vector<RLZfact> factarr){
 //     int breakid = 1;

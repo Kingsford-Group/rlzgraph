@@ -8,35 +8,13 @@
 #include "RLZfact.h"
 #include "SuffixTree.h"
 
-extern string Input_ref = "";
-extern string Input_strings = "";
+// extern string Input_ref = "";
+// extern string Input_strings = "";
 
 void print_help(){}
 void print_version(){}
 
 
-bool parse_argument(int argc, char * argv[]){
-    bool success=true;
-	bool specify_mq=false;
-	for(int i=1; i<argc; i++){
-		if(string(argv[i])=="--help"){
-			print_help();
-			exit(0);
-		}
-		if(string(argv[i])=="--version"){
-			print_version();
-			exit(0);
-		}
-        if (string(argv[i])=="-r"){
-            Input_ref = string(argv[++i]);
-        }
-        if (string(argv[i])=="-i"){
-            Input_strings = string(argv[++i]);
-        }
-    }
-    if (Input_ref == "" && Input_strings=="") return false;
-    return success;
-}
 
 vector<string> readFASTA(string filename){
     fstream input(filename);
@@ -51,8 +29,10 @@ vector<string> readFASTA(string filename){
     while (getline(input, line).good()){
         if (line[0] == '>' ){
             id++;
-            if (!content.empty()) strings.push_back(content);
-            content.clear();
+            if (!content.empty()){
+                strings.push_back(content);
+                content.clear();
+            }
         } else if (!line.empty()){
             if(line.find(' ')!=string::npos){
                 content.clear();
@@ -60,6 +40,10 @@ vector<string> readFASTA(string filename){
                 content+=line;
             }
         }
+    } 
+    if (!content.empty()){
+        strings.push_back(content);
+        content.clear();
     }
     cout << "Read " << id << " strings. "<< endl;
     return strings;

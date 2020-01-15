@@ -22,6 +22,39 @@ using namespace std;
 //     for(int j=i-1;j>=0;j--) cout << num[j];
 // }
 
+string Input_ref="";
+string Input_strings="";
+
+
+bool parse_argument(int argc, char * argv[]){
+    bool success=true;
+	bool specify_mq=false;
+	for(int i=1; i<argc; i++){
+		if(string(argv[i])=="--help"){
+			print_help();
+			exit(0);
+		}
+		if(string(argv[i])=="--version"){
+			print_version();
+			exit(0);
+		}
+        if (string(argv[i])=="-r"){
+            Input_ref = string(argv[++i]);
+            i++;
+        }
+        if (string(argv[i])=="-i"){
+            Input_strings = string(argv[++i]);
+            i++;
+        }
+        else{
+            cerr << "Unknown argument: " << string(argv[i]) << endl;\
+            exit(1);
+        }
+    }
+    if (Input_ref == "" && Input_strings=="") return false;
+    return success;
+}
+
 int main(int argc, char* argv[]){
 
     bool success = parse_argument(argc, argv);
@@ -30,9 +63,10 @@ int main(int argc, char* argv[]){
         
         string ref;
         vector<string> strings = readFASTA(Input_strings);
+        int start = 0;
         int id = 0;
 
-        if (Input_ref != ""){
+        if (Input_ref!=""){
             vector<string> refv = readFASTA(Input_ref);
             ref = refv[0]; 
         } else {
@@ -45,10 +79,18 @@ int main(int argc, char* argv[]){
 
         RLZgraph graph (ref);
         cout << "Built the initial tree" << endl;
-        for(; id<strings.size(); id++){
-            graph.addString(strings[id]);
+        for(int i = id; i<strings.size(); i++){
+            cout << i << endl;
+            graph.addString(strings[i]);
         }
         cout << "Finished adding sequences." << endl;
+
+        for (int i=id;i<strings.size();i++){
+            cout << i<< endl;
+            string test = graph.reconstruct(i-id);
+            assert(test == strings[i]);
+        }
+
 /*
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
         auto it = graph.phraseStarts.begin();

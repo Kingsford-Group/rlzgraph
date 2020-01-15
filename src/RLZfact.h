@@ -31,13 +31,15 @@ class RLZfact{
     // boost::dynamic_bitset<> Bitarray;
     // long int inputLen;
     // int phraseLength = 15;
+    long int stringID;
     vector<Phrase> phrases;
     
     RLZfact();
     // RLZfact(vector<long int> Qarr, map<long int, long int> Bmap, vector<long int> B2, boost::dynamic_bitset<> bitarray, long int len); // parse from processed RLZ fact.
-    RLZfact(vector<Phrase> phrases);
-    RLZfact(string & ref, SuffixTree & tree, string s); // actually do RLZ factorization
+    RLZfact(vector<Phrase> phrases, long int id);
+    RLZfact(string & ref, SuffixTree & tree, string s, long int id); // actually do RLZ factorization
     
+    long int size(){return phrases.size();}
     Phrase getPhrase(long int rank);
 };
 

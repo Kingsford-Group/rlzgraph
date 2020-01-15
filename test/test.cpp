@@ -23,5 +23,10 @@ int main(){
         i++;
     }
 
+    string t1 = graph.reconstruct(0);
+    string t2 = graph.reconstruct(1);
+    assert(s1==t1);
+    assert(s2==t2);
+
     return 0;
 }

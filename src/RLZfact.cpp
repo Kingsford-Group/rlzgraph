@@ -13,11 +13,13 @@ RLZfact::RLZfact(){}
 //         inputLen = len;
 // }
 
-RLZfact::RLZfact(vector<Phrase> phrases){
+RLZfact::RLZfact(vector<Phrase> phrases, long int id){
+    stringID = id;
     this->phrases = phrases;
 }
 
-RLZfact::RLZfact(string & ref, SuffixTree & tree, string s){
+RLZfact::RLZfact(string & ref, SuffixTree & tree, string s, long int id){
+    stringID = id;
     // perform factorization
     int i = 0;
     int idd = 0;

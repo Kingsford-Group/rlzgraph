@@ -37,6 +37,8 @@ class RLZgraph{
     vector<RLZfact> rlzarr; // a vector of rlz factorizations. one for each intpu string
     // boost::dynamic_bitset<> BR; //bit array
 
+    
+
     // initial graph with only the reference
     RLZgraph():ref(""), tree(""){};
     RLZgraph(string ref);
@@ -53,6 +55,11 @@ class RLZgraph{
 
     // traversals
     vector<long int> adjQuery(long int pos); // returns neighbors of the node defined by break at position pos
+    vector<long int> adjQuery(long int pos, long int color, long int rank); // traverse along a given axis
+
+    string reconstruct(long int color); // reconstruct a string
+
+    vector<long int> traverse(long int pos); // returns neighbors that locate only downstream of the queried position
     string access(int pos); //returns substring of the node defined by break at position pos
     void DFS(long int curr_pos, vector<bool> visited);
     void print_DFS();
