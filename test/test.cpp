@@ -2,6 +2,13 @@
 #include "../src/RLZfact.h"
 #include "../src/RLZgraph.h"
 
+struct classcomp2{
+    bool operator() (const long int & lhs, const long int & rhs) const{
+        return lhs > rhs;
+    }
+};
+
+
 int main(){
     string ref = "ATATTCGACGAGAT";
     string s1 = "ATAATTCGATTCGAT";
@@ -25,8 +32,24 @@ int main(){
 
     string t1 = graph.reconstruct(0);
     string t2 = graph.reconstruct(1);
-    assert(s1==t1);
-    assert(s2==t2);
+    // assert(s1==t1);
+    // assert(s2==t2);
+    cout << t1 << endl;
+    cout << endl;
+    cout << t2 << endl;
+
+    // map<long int, vector<long int>, classcomp2> Starts;
+
+    // Starts.insert(make_pair(1, vector<long int>{2,3}));
+    // Starts.insert(make_pair(4, vector<long int> {444,11}));
+    // Starts.insert(make_pair(3, vector<long int> {123}));
+
+    // auto iit = Starts.upper_bound(2);
+    // cout << iit->first << endl;
+
+    // for(auto it = Starts.begin(); it!=Starts.end(); it++){
+    //     cout << it->first << endl;
+    // }
 
     return 0;
 }

@@ -7,15 +7,92 @@ using namespace std;
 RLZgraph::RLZgraph(string ref):tree(ref){
     // tree (ref);
     this->ref = ref;
+    RLZNode * source = new RLZNode(-1);
+    RLZNode * sink = new RLZNode(ref.length());
+    source->length = ref.length();
+    sink->length = 0;
+    nodeDict.insert(make_pair(-1,source));
+    nodeDict.insert(make_pair(ref.length(),sink));
+    source->next = sink;
+    
     // colors.resize(ref.length());
     // ends.resize(ref.length());
 }
 
 void RLZgraph::addString(string s){
-    int id = rlzarr.size();
-    RLZfact newFact (ref, tree, s, id);
     int colorid = rlzarr.size();
+    RLZfact newFact (ref, tree, s, colorid);
     rlzarr.push_back(newFact);
+
+    int r = 0;
+    for (Phrase p : newFact.phrases){
+        auto startit = nodeDict.find(p.pos);
+        auto endit = nodeDict.find(p.pos+p.length-1);
+
+        RLZNode * currStart;
+        RLZNode * currEnd;
+
+        // printf("Phrase: (%lu, %lu)\n", p.pos, p.length);
+        
+        // split for start position
+        if (startit->second==nodeDict.end()->second){
+            currStart = new RLZNode(p.pos);
+
+            // deal with length of previous node
+            auto previt = nodeDict.upper_bound(p.pos);
+            // cout << previt->first <<"," << p.pos<< "," << nodeDict.end()->first<< endl;
+            // cout << previt->second <<"," << p.pos<< "," << nodeDict.end()->second<< endl;
+
+            if (previt != nodeDict.end()){
+                currStart->next = previt->second->next;
+                
+                previt->second->next = currStart;
+                previt->second->length = currStart->pos - previt->second->pos;
+                
+                currStart->length = currStart->next->pos - currStart->pos;
+            } 
+            nodeDict.insert(make_pair(p.pos, currStart));
+
+        }
+        else {currStart = startit->second;}
+        auto startcolorit = currStart->Starts.find(colorid);
+        if (startcolorit==currStart->Starts.end()){
+            currStart->Starts.insert(make_pair(colorid, vector<long int>{r}));
+        } else {
+            currStart->Starts[colorid].push_back(r);
+        }
+
+        // split for end position
+        if (endit->second == nodeDict.end()->second && p.pos+p.length!=ref.length()){
+            currEnd = new RLZNode(p.pos+p.length-1);
+
+
+            // deal with length of previous node
+            auto previt = nodeDict.upper_bound(p.pos+p.length-1);
+            if (previt != nodeDict.end()){
+                currEnd->next = previt->second->next;
+                
+                previt->second->next = currEnd;
+                previt->second->length = currEnd->pos - previt->second->pos;
+                
+                currEnd->length = currEnd->next->pos - currEnd->pos;
+            } 
+            nodeDict.insert(make_pair(p.pos+p.length, currStart));
+
+        } else {
+            currEnd = endit->second;
+        }
+        if (p.pos+p.length!=ref.length()){
+            auto Endcolorit = currEnd->Ends.find(colorid);
+            if (Endcolorit==currEnd->Ends.end()){
+                currEnd->Ends.insert(make_pair(colorid, vector<long int>{r}));
+            } else {
+                currEnd->Ends[colorid].push_back(r);
+            }
+        }
+        r++;
+    }
+
     int c = 0;
     for (Phrase p : newFact.phrases){
         // for(int i=0;i<p.length;i++){
@@ -47,6 +124,7 @@ void RLZgraph::addString(string s){
     }
 }
 
+
 vector<long int> RLZgraph::adjQuery(long int pos){
     vector<long int> neighbors;
     auto it = phraseEnds.find(pos);
@@ -75,23 +153,68 @@ vector<long int> RLZgraph::adjQuery(long int pos, long int color, long int rank)
         ref_pos = pos+ 1;
     }
     vector<long int> toRet {ref_pos, color, rank};
+
     return toRet;
 }
+
+vector<RLZNode*> RLZgraph::adjQuery(RLZNode * node){
+    vector<RLZNode*> neighbors;
+    auto it = node->Ends.begin();
+    for (;it!=node->Ends.end();it++){
+        for (long int rank : it->second){
+            long int ref_pos = rlzarr[it->first].getPhrase(rank+1).pos;
+            neighbors.push_back(nodeDict[ref_pos]);
+        }
+    }
+    neighbors.push_back(node->next);
+    return neighbors;
+}
+
+pair<RLZNode*, long int> RLZgraph::adjQuery(RLZNode * node, long int color, long int rank){
+    auto colorit = node->Ends.find(color);
+    bool isEnd = false;
+    RLZNode * toRet;
+    if (colorit!=node->Ends.end()){
+        for (long int r : colorit->second){
+            if (r == rank){
+                toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos];
+                isEnd = true;
+                rank+=1;
+            }
+        }
+    }
+
+    if (!isEnd) { toRet = node->next;}
+    return make_pair(toRet, rank);
+}
+
 
 string RLZgraph::reconstruct(long int color){
     long int rank = 0;
     Phrase curr = rlzarr[color].getPhrase(rank);
     string s = "";
-    long int pos = curr.pos;
+    // long int pos = curr.pos;
+    RLZNode* currNode = nodeDict[curr.pos];
     do {
-        s += ref[pos];
-        vector<long int > next = adjQuery(pos, color, rank);
-        rank = next[2];
-        pos = next[0];
-    }while (rank < rlzarr[color].size());
+        cout << currNode->pos << "," << currNode->length << endl;
+
+        s += ref.substr(currNode->pos, currNode->length);
+        // s+= ref.substr(pos);
+        // vector<long int> next = adjQuery(pos, color, rank);
+        pair<RLZNode*, long int> next = adjQuery(currNode, color, rank);
+        // rank = next[1];
+        // pos = next[0];
+        // if (color > 2)
+        // cout << &(currNode)<< endl;
+        // cout << &(currNode->next)<< endl;
+        rank = next.second;
+        currNode = next.first;
+    }while (rank != rlzarr[color].size()-1 && currNode !=NULL);
 
     return s;
 }
+
+
 // void RLZgraph::construction(string ref, vector<RLZfact> factarr){
 //     int breakid = 1;
 //     int inputid = 1;

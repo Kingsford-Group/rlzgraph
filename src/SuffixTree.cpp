@@ -24,6 +24,8 @@ Node::Node (int start, int *end, Node * root) {
         actual suffix index will be set later for leaves 
         at the end of all phases*/
         this->suffixIndex = -1; 
+
+        this->height= 0;
     } 
 
 int SuffixTree::edgeLength(Node * currNode){
@@ -58,9 +60,17 @@ void SuffixTree::extendSuffixTree(int pos){
     leafEnd = pos;
     remainingSuffixCount++;
     lastNewNode=NULL;
+    int walkdown = 0;
 
     while(remainingSuffixCount>0){
         if (activeLength==0) activeEdge = pos;
+
+        if (pos == 319){
+            cout << "=======================" << endl;
+            cout << walkdown <<endl;
+            cout << activeLength << endl;
+            cout << edgeLength(activeNode) << endl;
+        }
 
         // if the next character is not in tree yet, creates new node
         // cout << (activeNode ->children[getIdx(text[activeEdge])]==NULL)<<endl;
@@ -68,7 +78,8 @@ void SuffixTree::extendSuffixTree(int pos){
             // cout << "case 1" << endl;
             // cout << "Index: " << getIdx(text[activeEdge]) << endl;
             activeNode->children[getIdx(text[activeEdge])] = new Node(pos, &leafEnd, root);
-            activeNode->children[getIdx(text[activeEdge])]->label = pos - edgeLength(activeNode);
+            activeNode->children[getIdx(text[activeEdge])]->label = pos - activeNode->height;
+            activeNode->children[getIdx(text[activeEdge])]->height = activeNode->height + edgeLength(activeNode->children[getIdx(text[activeEdge])]);
             // cout << activeNode ->children[getIdx(text[activeEdge])]->start<<endl;
             if (lastNewNode != NULL){
                 lastNewNode->suffixLink = activeNode;
@@ -77,7 +88,10 @@ void SuffixTree::extendSuffixTree(int pos){
         }
         else{
             Node * next = activeNode->children[getIdx(text[activeEdge])];
-            if (walkDown(next)) continue;
+            if (walkDown(next)) {
+                walkdown += edgeLength(activeNode);
+                continue;
+            }
 
             // current character in tree
             if (text[next->start + activeLength] == text[pos]){
@@ -100,10 +114,12 @@ void SuffixTree::extendSuffixTree(int pos){
             // the common path
             Node *split = new Node(next->start, splitEnd, root); 
             activeNode->children[getIdx(text[activeEdge])] = split;
+            split->height = activeNode->height + edgeLength(split);
 
             // Corresponds to the newly added branch
             split->children[getIdx(text[pos])] = new Node(pos, &leafEnd, root);
-            split->children[getIdx(text[pos])]->label = pos - activeLength;
+            split->children[getIdx(text[pos])]->label = pos - split->height;
+            split->children[getIdx(text[pos])]->height = split->height + edgeLength(split->children[getIdx(text[pos])]);
             
             next->start += activeLength;
             split->children[getIdx(text[next->start])] = next;
@@ -154,6 +170,9 @@ pair<int, int> SuffixTree::traverse(string s){
 
         // printf("InEdge: %u, Length: %u\n", inEdge,length);
         //cout <<next->start + inEdge <<endl;
+        // cout << next->start << "," << *(next->end) << "," << next->label<< endl;
+        // cout << s[i] << endl;
+
         if (inEdge == length){
             if (next->children[getIdx(s[i])]!=NULL){
                 inEdge = 1;

@@ -88,6 +88,9 @@ int main(int argc, char* argv[]){
         for (int i=id;i<strings.size();i++){
             cout << i<< endl;
             string test = graph.reconstruct(i-id);
+            cout << test.length() << endl;
+            cout << strings[i].length()  << endl;
+            cout << "======" << endl;
             assert(test == strings[i]);
         }
 
