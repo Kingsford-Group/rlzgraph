@@ -91,7 +91,10 @@ int main(int argc, char* argv[]){
             cout << test.length() << endl;
             cout << strings[i].length()  << endl;
             cout << "======" << endl;
-            assert(test == strings[i]);
+            assert(test.compare(strings[i])==0);
+            cout  << test << endl;
+            cout << strings[i] << endl;
+            cout << "============" << endl;
         }
 
 /*

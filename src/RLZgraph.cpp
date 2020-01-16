@@ -7,12 +7,12 @@ using namespace std;
 RLZgraph::RLZgraph(string ref):tree(ref){
     // tree (ref);
     this->ref = ref;
-    RLZNode * source = new RLZNode(-1);
-    RLZNode * sink = new RLZNode(ref.length());
-    source->length = ref.length();
+    RLZNode * source = new RLZNode(0);
+    RLZNode * sink = new RLZNode(ref.length()+1);
+    source->length = ref.length()+1;
     sink->length = 0;
-    nodeDict.insert(make_pair(-1,source));
-    nodeDict.insert(make_pair(ref.length(),sink));
+    nodeDict.insert(make_pair(0,source));
+    nodeDict.insert(make_pair(ref.length()+1,sink));
     source->next = sink;
     
     // colors.resize(ref.length());
@@ -26,101 +26,77 @@ void RLZgraph::addString(string s){
 
     int r = 0;
     for (Phrase p : newFact.phrases){
-        auto startit = nodeDict.find(p.pos);
-        auto endit = nodeDict.find(p.pos+p.length-1);
-
+        numEdges++;
         RLZNode * currStart;
         RLZNode * currEnd;
 
-        // printf("Phrase: (%lu, %lu)\n", p.pos, p.length);
+        long int start = p.pos+1;
+        long int end = p.pos+p.length+1;
+
+        // if the node is not there yet, add the node, split its predecessor
+        auto startit = nodeDict.find(start);
+
+        if (startit == nodeDict.end()){
+            auto previt = nodeDict.upper_bound(start);
+            RLZNode * prevNode = previt->second;
+
+            long int oldpos = prevNode->pos;
+
+            prevNode->length = prevNode->length-(start-oldpos);
+
+            prevNode->pos = start;
+            previt = nodeDict.upper_bound(previt->first);
+
+            currStart = new RLZNode(oldpos);
+            numNodes ++;
+            nodeDict[oldpos] = currStart;
+            nodeDict[start] = prevNode;
+            currStart->length = start - oldpos;
+
+            if (previt->second->pos != ref.length()+1) 
+                previt->second->next = currStart; 
+            currStart->next = prevNode;
         
-        // split for start position
-        if (startit->second==nodeDict.end()->second){
-            currStart = new RLZNode(p.pos);
-
-            // deal with length of previous node
-            auto previt = nodeDict.upper_bound(p.pos);
-            // cout << previt->first <<"," << p.pos<< "," << nodeDict.end()->first<< endl;
-            // cout << previt->second <<"," << p.pos<< "," << nodeDict.end()->second<< endl;
-
-            if (previt != nodeDict.end()){
-                currStart->next = previt->second->next;
-                
-                previt->second->next = currStart;
-                previt->second->length = currStart->pos - previt->second->pos;
-                
-                currStart->length = currStart->next->pos - currStart->pos;
-            } 
-            nodeDict.insert(make_pair(p.pos, currStart));
-
-        }
-        else {currStart = startit->second;}
-        auto startcolorit = currStart->Starts.find(colorid);
-        if (startcolorit==currStart->Starts.end()){
-            currStart->Starts.insert(make_pair(colorid, vector<long int>{r}));
-        } else {
-            currStart->Starts[colorid].push_back(r);
         }
 
-        // split for end position
-        if (endit->second == nodeDict.end()->second && p.pos+p.length!=ref.length()){
-            currEnd = new RLZNode(p.pos+p.length-1);
+        auto endit =nodeDict.find(end);
+        auto previt = nodeDict.upper_bound(end);
+
+        RLZNode* prevNode = previt->second;
+        long int oldpos = prevNode->pos;
+
+        // add back pointer
+
+        if (endit == nodeDict.end()){
+
+            prevNode->length = prevNode->length-(end-oldpos);
+
+            prevNode->pos = end;
+            previt = nodeDict.upper_bound(previt->first);
+            // previt--;
 
 
-            // deal with length of previous node
-            auto previt = nodeDict.upper_bound(p.pos+p.length-1);
-            if (previt != nodeDict.end()){
-                currEnd->next = previt->second->next;
-                
-                previt->second->next = currEnd;
-                previt->second->length = currEnd->pos - previt->second->pos;
-                
-                currEnd->length = currEnd->next->pos - currEnd->pos;
-            } 
-            nodeDict.insert(make_pair(p.pos+p.length, currStart));
+            currEnd = new RLZNode(oldpos);
+            numNodes ++;
+            currEnd->Ends[colorid].push_back(r);
+            nodeDict[oldpos] = currEnd;
+            nodeDict[end] = prevNode;
+            currEnd->length = end - currEnd->pos;
+
+            currEnd->next = previt->second;
+
+            if (previt->second->pos != ref.length()+1) 
+                previt->second->next = currEnd;            
+            currEnd->next = prevNode;
+            cout << currEnd->next->pos << endl;
+            cout << prevNode->next->pos << endl;
 
         } else {
-            currEnd = endit->second;
+            prevNode->Ends[colorid].push_back(r);
+
         }
-        if (p.pos+p.length!=ref.length()){
-            auto Endcolorit = currEnd->Ends.find(colorid);
-            if (Endcolorit==currEnd->Ends.end()){
-                currEnd->Ends.insert(make_pair(colorid, vector<long int>{r}));
-            } else {
-                currEnd->Ends[colorid].push_back(r);
-            }
-        }
+        
         r++;
-    }
-
-    int c = 0;
-    for (Phrase p : newFact.phrases){
-        // for(int i=0;i<p.length;i++){
-        //     colors[p.pos+i].append(backPhrase(colorid, c,false);
-        // }
-        auto it = phraseEnds.find(p.pos+p.length-1);
-        if (it== phraseEnds.end()){
-            vector<backPhrase> newVec;
-            newVec.push_back(backPhrase(colorid, c));
-            phraseEnds[p.pos+p.length-1] = newVec;
-            if (p.pos+p.length-1 < ref.length()-1) numNodes += 1;
-        } else {
-            phraseEnds[p.pos+p.length-1].push_back(backPhrase(colorid, c));
-        }
-
-        it = phraseStarts.find(p.pos);
-        if (it== phraseStarts.end()){
-            vector<backPhrase> newVec;
-            newVec.push_back(backPhrase(colorid, c));
-            phraseStarts[p.pos] = newVec;
-
-            auto itEnds = phraseEnds.find(p.pos);
-            if (itEnds == phraseEnds.end()) numNodes+=1;
-        } else {
-            phraseStarts[p.pos].push_back(backPhrase(colorid, c));
-        }
-        numEdges ++;
-        c++;
     }
 }
 
@@ -173,19 +149,25 @@ vector<RLZNode*> RLZgraph::adjQuery(RLZNode * node){
 pair<RLZNode*, long int> RLZgraph::adjQuery(RLZNode * node, long int color, long int rank){
     auto colorit = node->Ends.find(color);
     bool isEnd = false;
-    RLZNode * toRet;
+    long int retRank = rank;
+    RLZNode * toRet = NULL;
     if (colorit!=node->Ends.end()){
         for (long int r : colorit->second){
             if (r == rank){
-                toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos];
+
+                //check if it is the last phrase
+                if (r == rlzarr[color].size()-1) return make_pair(toRet, retRank);
+
+                toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos+1];
+
                 isEnd = true;
-                rank+=1;
+                retRank+=1;
             }
         }
     }
-
+    
     if (!isEnd) { toRet = node->next;}
-    return make_pair(toRet, rank);
+    return make_pair(toRet, retRank);
 }
 
 
@@ -196,21 +178,23 @@ string RLZgraph::reconstruct(long int color){
     // long int pos = curr.pos;
     RLZNode* currNode = nodeDict[curr.pos];
     do {
-        cout << currNode->pos << "," << currNode->length << endl;
 
-        s += ref.substr(currNode->pos, currNode->length);
         // s+= ref.substr(pos);
         // vector<long int> next = adjQuery(pos, color, rank);
         pair<RLZNode*, long int> next = adjQuery(currNode, color, rank);
+
+        if (next.first == NULL) break;
+
+        currNode = next.first;
+        rank = next.second;
+
+        s += ref.substr(currNode->pos-1, currNode->length);
         // rank = next[1];
         // pos = next[0];
         // if (color > 2)
         // cout << &(currNode)<< endl;
         // cout << &(currNode->next)<< endl;
-        rank = next.second;
-        currNode = next.first;
-    }while (rank != rlzarr[color].size()-1 && currNode !=NULL);
-
+    }while (rank <= rlzarr[color].size()-1 && currNode !=NULL);
     return s;
 }
 

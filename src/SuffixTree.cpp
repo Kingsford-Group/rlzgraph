@@ -65,12 +65,12 @@ void SuffixTree::extendSuffixTree(int pos){
     while(remainingSuffixCount>0){
         if (activeLength==0) activeEdge = pos;
 
-        if (pos == 319){
-            cout << "=======================" << endl;
-            cout << walkdown <<endl;
-            cout << activeLength << endl;
-            cout << edgeLength(activeNode) << endl;
-        }
+        // if (pos == 319){
+        //     cout << "=======================" << endl;
+        //     cout << walkdown <<endl;
+        //     cout << activeLength << endl;
+        //     cout << edgeLength(activeNode) << endl;
+        // }
 
         // if the next character is not in tree yet, creates new node
         // cout << (activeNode ->children[getIdx(text[activeEdge])]==NULL)<<endl;

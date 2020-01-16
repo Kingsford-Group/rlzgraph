@@ -23,11 +23,26 @@ int main(){
     int i = 0;
     for (RLZfact fact : graph.rlzarr){
         printf("The %u th string: ",i);
-        for (int j=0;j<fact.phrases.size();j++){
-            printf("(%u, %u)", fact.getPhrase(j).pos, fact.getPhrase(j).length);
+        for (long int j=0;j<fact.phrases.size();j++){
+            printf("(%lu, %lu)", fact.getPhrase(j).pos, fact.getPhrase(j).length);
         }
         cout << endl;
         i++;
+    }
+
+    auto it = graph.nodeDict.end();
+    it--;
+    for (;it!=graph.nodeDict.begin(); it--){
+        printf("Node at %lu (pos: %lu, length:%lu): \n",it->first, it->second->pos,it->second->length);
+        auto colorit = it->second->Ends.begin();
+        for (;colorit!=it->second->Ends.end();colorit++){
+            printf("   It has ends at string %lu: ", colorit->first);
+            for (long int r : colorit->second){
+                cout << r <<"," ;
+            }
+            cout << endl;
+        }
+        printf("   And the next node is at %lu.\n", it->second->next->pos);
     }
 
     string t1 = graph.reconstruct(0);

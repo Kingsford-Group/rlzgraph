@@ -13,14 +13,16 @@ using namespace std;
 
 struct Phrase{
     int id;
-    int pos;
-    int length;
+    long int pos;
+    long int length;
 
-    Phrase(int idd, int poss, int lenn){
+    Phrase(int idd, long int poss, long int lenn){
         id = idd;
         pos = poss;
         length = lenn;
     }
+
+    void print();
 };
 
 class RLZfact{
