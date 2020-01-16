@@ -10,6 +10,13 @@
 #include "SuffixTree.h"
 #include <boost/dynamic_bitset.hpp>
 
+
+struct classcomp{
+    bool operator() (const long int & lhs, const long int & rhs) const{
+        return lhs > rhs;
+    }
+};
+
 struct backPhrase{
     int stringID;
     long int rank;
@@ -22,6 +29,26 @@ struct backPhrase{
     }
 };
 
+class RLZNode{
+    public:
+    long int pos;
+    long int length;
+
+    map<long int, vector<long int>, classcomp> Ends; // color: [rank]
+    map<long int, vector<long int>, classcomp> Starts;
+
+    RLZNode * next; // next node in reference coordinate
+
+    RLZNode(){}
+    RLZNode(long int pos){
+        this->pos = pos;
+    }
+    RLZNode(long int pos, long int length){
+        this->pos = pos;
+        this->length = length;
+    }
+};
+
 class RLZgraph{
     public: 
     string ref;
@@ -31,13 +58,13 @@ class RLZgraph{
 
     map<long int, vector<backPhrase> > phraseEnds;
     map<long int, vector<backPhrase> > phraseStarts;
+
+    map<long int, RLZNode *,classcomp> nodeDict;
     // boost::dynamic_bitset<> ends;
     // map<int, int> H; //(pos, breakid)
     // map<int, vector<pair<int, int> > > HB; //(breakid, [(inputid, inputpos)])
     vector<RLZfact> rlzarr; // a vector of rlz factorizations. one for each intpu string
     // boost::dynamic_bitset<> BR; //bit array
-
-    
 
     // initial graph with only the reference
     RLZgraph():ref(""), tree(""){};
@@ -56,6 +83,9 @@ class RLZgraph{
     // traversals
     vector<long int> adjQuery(long int pos); // returns neighbors of the node defined by break at position pos
     vector<long int> adjQuery(long int pos, long int color, long int rank); // traverse along a given axis
+    
+    vector<RLZNode *> adjQuery(RLZNode * node);
+    pair<RLZNode *, long int > adjQuery(RLZNode * node, long int color, long int rank);
 
     string reconstruct(long int color); // reconstruct a string
 

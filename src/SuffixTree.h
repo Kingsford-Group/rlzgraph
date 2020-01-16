@@ -23,6 +23,7 @@ class Node{
     /*for leaf nodes, it stores the index of suffix for 
       the path  from root to leaf*/
     int suffixIndex; 
+    int height;
 
     Node(int start, int * end, Node * root);
 };
