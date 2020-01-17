@@ -6,7 +6,7 @@
 
 using namespace std;
 
-static int ALP_SIZE = 5;
+static int ALP_SIZE = 6;
 
 class Node{
     public:
@@ -31,6 +31,7 @@ class Node{
 class SuffixTree{
     public:
     string text;
+
     Node * root = NULL;
     Node * lastNewNode = NULL;
     Node * activeNode = NULL;

@@ -51,9 +51,10 @@ int SuffixTree::getIdx(char c){
         case 'G': return 2;
         case 'T': return 3;
         case 'N': return 4;
+        case 'M': return 5;
     }
-    cerr << "Unrecognized Character: " << c << endl;
-    exit(1);
+   cerr << "Unrecognized Character: " << c << endl;
+   exit(1);
 }
 
 void SuffixTree::extendSuffixTree(int pos){
@@ -154,6 +155,9 @@ SuffixTree::SuffixTree(string ref){
 
     activeNode = root;
     for (i=0;i<size;i++) extendSuffixTree(i);
+
+    // add the reversed string
+    for (i=size-1; i>=0; i--) extendSuffixTree(i);
 }
 
 // go as far as possible in the tree.
@@ -164,6 +168,14 @@ pair<int, int> SuffixTree::traverse(string s){
     int length = 0;
     int inEdge = 0;
     int start = -1;
+
+    if (root->children[getIdx(s[0])] == NULL){
+        int newsize = size+1;
+        root->children[getIdx(s[0])] = new Node(size, &(newsize), root);
+        size = size+1;
+        return make_pair(newsize, 1);
+    }
+
     while (i < s.length()){
         // cout << "Curr Node: " << next->label << endl;
         // for (int i=0;i<ALP_SIZE;i++){
@@ -198,3 +210,4 @@ pair<int, int> SuffixTree::traverse(string s){
     }
     return make_pair(start,s.length()); //no match
 }
+

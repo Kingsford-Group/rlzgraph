@@ -56,8 +56,9 @@ void RLZgraph::addString(string s){
 
             if (previt != nodeDict.end() && previt->second->pos != ref.length()+1) 
                 previt->second->next = currStart; 
+
             currStart->next = prevNode;
-        
+            prevNode->Starts[colorid].push_back(r);
         }
 
         auto endit =nodeDict.find(end);
@@ -87,14 +88,14 @@ void RLZgraph::addString(string s){
             currEnd->next = previt->second;
 
             if (previt->second->pos != ref.length()+1) 
-                previt->second->next = currEnd;            
+                previt->second->next = currEnd;    
+
             currEnd->next = prevNode;
             // cout << currEnd->next->pos << endl;
             // cout << prevNode->next->pos << endl;
 
         } else {
             prevNode->Ends[colorid].push_back(r);
-
         }
         
         r++;
@@ -153,18 +154,28 @@ pair<RLZNode*, long int> RLZgraph::adjQuery(RLZNode * node, long int color, long
     long int retRank = rank;
     RLZNode * toRet = NULL;
     if (colorit!=node->Ends.end()){
-        for (long int r : colorit->second){
-            if (r == rank){
+        auto rankit = node->Ends.find(rank);
+        if (rankit != node->Ends.end()){
+            //check if it is the last phrase
+            if (rankit->first == rlzarr[color].size()-1) return make_pair(toRet, retRank);
 
-                //check if it is the last phrase
-                if (r == rlzarr[color].size()-1) return make_pair(toRet, retRank);
+            toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos+1];
 
-                toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos+1];
-
-                isEnd = true;
-                retRank+=1;
-            }
+            isEnd = true;
+            retRank+=1;
         }
+        // for (long int r : colorit->second){
+        //     if (r == rank){
+
+        //         //check if it is the last phrase
+        //         if (r == rlzarr[color].size()-1) return make_pair(toRet, retRank);
+
+        //         toRet = nodeDict[rlzarr[color].getPhrase(rank+1).pos+1];
+
+        //         isEnd = true;
+        //         retRank+=1;
+        //     }
+        // }
     }
     
     if (!isEnd) { toRet = node->next;}
@@ -219,6 +230,82 @@ void RLZgraph::writeGraph(string outname){
     }
 
     output.close();
+}
+
+
+vector<RLZNode *> RLZgraph::superpath(RLZNode* curr, long int rank, long int color){
+    vector<RLZNode *> path;
+    
+    return path;
+}
+
+vector<Bubble> RLZgraph::findAllBubbles(){
+    vector<Bubble> bubbles;
+    RLZNode * node = nodeDict.find(0)->second;
+    vector<RLZNode*> neighbors;
+    while (node != NULL){
+        neighbors = adjQuery(node);
+        if (neighbors.size()> 1){
+            RLZNode * nextRef = neighbors[neighbors.size()-1];
+            vector<RLZNode *> refPath = superpath(nextRef, nextRef->pos, -1);
+            for (int i=0; i<neighbors.size()-1; i++){
+                for (auto colorit = neighbors[i]->Starts.begin(); colorit!=neighbors[i]->Starts.end();colorit++){
+                    for (long int rank : colorit->second){
+                        vector<RLZNode *> otherPath = superpath(neighbors[i], rank, colorit->first);
+                        Bubble b(nextRef, neighbors[i], refPath, otherPath);
+                        bubbles.push_back(b);
+                    }
+                }
+            }
+        }
+        node = node->next;
+    }
+    return bubbles;
+}
+
+vector<Bubble> RLZgraph::findBubbles(int color){
+    vector<Bubble> bubbles;
+
+    return bubbles;
+}
+
+// bubble between two colors. 
+vector<Bubble> RLZgraph::findBubbles(int color1, int color2){
+
+    if (color2 == -1) 
+        return findBubbles(color1);
+    if (color1 == -1)
+        return findBubbles(color2);
+
+    vector<Bubble> bubbles;
+    RLZNode * node = nodeDict.find(0)->second;
+
+    long int rank = 0;
+
+    while (node != NULL){
+        // pair(node, rank)
+        auto next1 = adjQuery(node, color1, rank); 
+        auto next2 = adjQuery(node, color2, rank);
+
+        if (next1.first == NULL || next2.first == NULL) break;
+
+        if (next1.first!= next2.first){
+            Bubble b;
+            vector<RLZNode *> nextPath1 = superpath(next1.first, next1.second, color1);
+            vector<RLZNode *> nextPath2 = superpath(next2.first, next2.second, color2);
+            if (nextPath1[nextPath1.size()-1] == nextPath2[nextPath2.size()-1]) {
+                b.begin = node;
+                b.end = nextPath1[nextPath1.size()-1];
+                b.firstPath = nextPath1;
+                b.secondPath = nextPath2;
+            } else {
+                cerr << "Bubble finding: the ends are not the same!" << endl;
+                exit(1);
+            }
+            bubbles.push_back(b);
+        }
+    }
+    return bubbles;
 }
 
 //updates

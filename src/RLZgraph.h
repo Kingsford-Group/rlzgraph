@@ -7,9 +7,11 @@
 #include <stdlib.h>
 #include <vector>
 #include <map>
+#include <set>
 #include "RLZfact.h"
 #include "SuffixTree.h"
 #include <boost/dynamic_bitset.hpp>
+#include <unordered_map>
 
 
 struct classcomp{
@@ -35,10 +37,11 @@ class RLZNode{
     long int pos;
     long int length;
 
-    map<long int, vector<long int>, classcomp> Ends; // color: [rank]
-    map<long int, vector<long int>, classcomp> Starts;
+    unordered_map<long int, vector<long int> > Ends; // color: [rank]
+    unordered_map<long int, vector<long int> > Starts;
 
     RLZNode * next; // next node in reference coordinate
+    RLZNode * prev; // previous node in reference coordinate
 
     RLZNode(){}
     RLZNode(long int pos){
@@ -48,6 +51,17 @@ class RLZNode{
         this->pos = pos;
         this->length = length;
     }
+};
+
+class Bubble{
+    public:
+    RLZNode * begin;
+    RLZNode * end;
+    vector<RLZNode *> firstPath;
+    vector<RLZNode *> secondPath;
+
+    Bubble(){}
+    Bubble(RLZNode* b, RLZNode* e, vector<RLZNode *> refPath, vector<RLZNode *> otherPath);
 };
 
 class RLZgraph{
@@ -95,8 +109,15 @@ class RLZgraph{
     
     void writeGraph(string name);
     
-    void DFS(long int curr_pos, vector<bool> visited);
-    void print_DFS();
+    // void DFS(long int curr_pos, vector<bool> visited);
+    // void print_DFS();
+
+    vector<Bubble> findAllBubbles();
+    vector<Bubble> findBubbles(int color1, int color2); // finds bubbles between only color1 and color2
+    vector<Bubble> findBubbles(int color); // finds bubbles between reference and color.
+
+
+    vector<RLZNode*> superpath(RLZNode* next, long int pos, long int color); // the second parameter could be pos or rank. Use rank if it is in the compressed string. color = -1 if reference 
 
     // updates
     void insertSeq(string seq);
