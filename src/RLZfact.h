@@ -43,6 +43,7 @@ class RLZfact{
     
     long int size(){return phrases.size();}
     Phrase getPhrase(long int rank);
+    string reconstruct(string & ref);
 };
 
 #endif
