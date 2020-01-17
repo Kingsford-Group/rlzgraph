@@ -2,6 +2,7 @@
 #define __RLZgraph_H__
 
 #include <iostream>
+#include <fstream>
 #include <stdio.h> 
 #include <stdlib.h>
 #include <vector>
@@ -98,6 +99,14 @@ class RLZgraph{
     // writes in the format: <pos> <length> <color,rank>
     void writeGraph(string outname);
 
+<<<<<<< HEAD
+=======
+    vector<long int> traverse(long int pos); // returns neighbors that locate only downstream of the queried position
+    string access(RLZNode * node); //returns substring of the node defined by break at position pos
+    
+    void writeGraph(string name);
+    
+>>>>>>> 36bbb10e062cc01aadb53870800b98686b24dcb3
     void DFS(long int curr_pos, vector<bool> visited);
     void print_DFS();
 
