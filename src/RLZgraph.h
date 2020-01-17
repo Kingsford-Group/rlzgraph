@@ -5,6 +5,7 @@
 #include <stdio.h> 
 #include <stdlib.h>
 #include <vector>
+#include <fstream>
 #include <map>
 #include "RLZfact.h"
 #include "SuffixTree.h"
@@ -34,7 +35,7 @@ class RLZNode{
     long int pos;
     long int length;
 
-    map<long int, vector<long int>, classcomp> Ends; // color: [rank]
+    map<long int, vector<long int> > Ends; // color: [rank]
     map<long int, vector<long int>, classcomp> Starts;
 
     RLZNode * next; // next node in reference coordinate
@@ -87,12 +88,20 @@ class RLZgraph{
     vector<RLZNode *> adjQuery(RLZNode * node);
     pair<RLZNode *, long int > adjQuery(RLZNode * node, long int color, long int rank);
 
-    string reconstruct(long int color); // reconstruct a string
+    string reconstruct(long int color); // reconstruct a string of color.
+    
+    // vector<long int> traverse(long int pos); 
 
-    vector<long int> traverse(long int pos); // returns neighbors that locate only downstream of the queried position
-    string access(int pos); //returns substring of the node defined by break at position pos
+    //returns substring of the node defined by break at position pos
+    string access(RLZNode* node); 
+
+    // writes in the format: <pos> <length> <color,rank>
+    void writeGraph(string outname);
+
     void DFS(long int curr_pos, vector<bool> visited);
     void print_DFS();
+
+    
 
     // updates
     void insertSeq(string seq);
