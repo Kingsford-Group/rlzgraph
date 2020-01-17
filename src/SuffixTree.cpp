@@ -52,6 +52,8 @@ int SuffixTree::getIdx(char c){
         case 'T': return 3;
         case 'N': return 4;
     }
+    cerr << "Unrecognized Character: " << c << endl;
+    exit(1);
 }
 
 void SuffixTree::extendSuffixTree(int pos){
@@ -113,6 +115,7 @@ void SuffixTree::extendSuffixTree(int pos){
 
             // the common path
             Node *split = new Node(next->start, splitEnd, root); 
+            split->label = next->label;
             activeNode->children[getIdx(text[activeEdge])] = split;
             split->height = activeNode->height + edgeLength(split);
 

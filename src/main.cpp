@@ -24,6 +24,7 @@ using namespace std;
 
 string Input_ref="";
 string Input_strings="";
+string Output_name="";
 
 
 bool parse_argument(int argc, char * argv[]){
@@ -34,24 +35,30 @@ bool parse_argument(int argc, char * argv[]){
 			print_help();
 			exit(0);
 		}
-		if(string(argv[i])=="--version"){
+		else if(string(argv[i])=="--version"){
 			print_version();
 			exit(0);
 		}
-        if (string(argv[i])=="-r"){
+        else if (string(argv[i])=="-r"){
             Input_ref = string(argv[++i]);
-            i++;
+            // i++;
         }
-        if (string(argv[i])=="-i"){
+        else if (string(argv[i])=="-o"){
+            cout << i << endl;
+            Output_name = string(argv[++i]);
+            cout << i << endl;
+            // i++;
+        }
+        else if (string(argv[i])=="-i"){
             Input_strings = string(argv[++i]);
-            i++;
+            // i++;
         }
         else{
             cerr << "Unknown argument: " << string(argv[i]) << endl;\
             exit(1);
         }
     }
-    if (Input_ref == "" && Input_strings=="") return false;
+    if (Input_strings=="") return false;
     return success;
 }
 
@@ -85,17 +92,37 @@ int main(int argc, char* argv[]){
         }
         cout << "Finished adding sequences." << endl;
 
-        for (int i=id;i<strings.size();i++){
-            cout << i<< endl;
-            string test = graph.reconstruct(i-id);
-            cout << test.length() << endl;
-            cout << strings[i].length()  << endl;
-            cout << "======" << endl;
-            assert(test.compare(strings[i])==0);
-            cout  << test << endl;
-            cout << strings[i] << endl;
-            cout << "============" << endl;
+        if (Output_name!=""){
+            cout<<"Writing graph to " << Output_name << endl;
+            graph.writeGraph(Output_name);
         }
+
+        // int k=0;
+        // for (RLZfact fact : graph.rlzarr){
+        //     int loc = 0;
+        //     printf("The %u th string: ",k);
+        //     for (long int j=0;j<fact.phrases.size();j++){
+        //         printf("(%lu, %lu)", fact.getPhrase(j).pos, fact.getPhrase(j).length);
+        //         assert(ref.substr(fact.getPhrase(j).pos, fact.getPhrase(j).length).compare(strings[k].substr(loc, fact.getPhrase(j).length))==0);
+        //         loc+=fact.getPhrase(j).length;
+        //     }
+        //     cout << endl;
+        //     k++;
+        // }
+
+        string test = graph.reconstruct(3);
+        // for (int i=id;i<strings.size();i++){
+        //     cout << i<< endl;
+        //     string test = graph.reconstruct(i-id);
+        //     string test2 = graph.rlzarr[i-id].reconstruct(graph.ref);
+        //     cout << test.length() << endl;
+        //     cout << strings[i].length()  << endl;
+        //     cout << "======" << endl;
+        //     assert(test.compare(strings[i])==0);
+        //     // cout  << test << endl;
+        //     // cout << strings[i] << endl;
+        //     cout << "============" << endl;
+        // }
 
 /*
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
@@ -122,6 +149,8 @@ int main(int argc, char* argv[]){
         }
 */
         printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
+
+
     }
     
     // string ref = "ATATTCGACGAGAT";
@@ -162,4 +191,8 @@ int main(int argc, char* argv[]){
 
     // graph.print_DFS();
     // printdec2bin(graph.BR, len);
+    else {
+        print_help();
+        exit(1);
+    }
 }
