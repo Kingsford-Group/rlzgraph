@@ -70,7 +70,7 @@ class Bubble{
 
 class RLZgraph{
     public: 
-    string ref;
+    string * ref;
     SuffixTree tree;
     long int numNodes=0;
     long int numEdges=0;
@@ -86,7 +86,7 @@ class RLZgraph{
     // boost::dynamic_bitset<> BR; //bit array
 
     // initial graph with only the reference
-    RLZgraph():ref(""), tree(""){};
+    RLZgraph():tree(""){};
     RLZgraph(string ref);
     
     void addString(string s);
@@ -128,7 +128,7 @@ class RLZgraph{
 
     vector<RLZNode*> superpath(RLZNode* next, long int pos, long int color); // the second parameter could be pos or rank. Use rank if it is in the compressed string. color = -1 if reference 
 
-    
+    void printGraph();
 
     // updates
     void insertSeq(string seq);

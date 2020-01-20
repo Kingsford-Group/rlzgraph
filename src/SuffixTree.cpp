@@ -205,10 +205,13 @@ pair<int, int> SuffixTree::traverse(string s){
     int start = -1;
 
     if (root->children[getIdx(s[0])] == NULL){
+        int oldsize = size;
         int newsize = size+1;
         root->children[getIdx(s[0])] = new Node(size, &(newsize), root);
         size = size+1;
-        return make_pair(newsize, 1);
+        ref += s[0];
+        cout << "Ref has been changed! Added character: " << s[0] << endl;
+        return make_pair(oldsize, 1);
     }
 
     while (i < s.length()){

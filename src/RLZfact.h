@@ -39,11 +39,11 @@ class RLZfact{
     RLZfact();
     // RLZfact(vector<long int> Qarr, map<long int, long int> Bmap, vector<long int> B2, boost::dynamic_bitset<> bitarray, long int len); // parse from processed RLZ fact.
     RLZfact(vector<Phrase> phrases, long int id);
-    RLZfact(string & ref, SuffixTree & tree, string s, long int id); // actually do RLZ factorization
+    RLZfact(SuffixTree & tree, string s, long int id); // actually do RLZ factorization
     
     long int size(){return phrases.size();}
     Phrase getPhrase(long int rank);
-    string reconstruct(string & ref);
+    string reconstruct(string * ref);
 };
 
 #endif

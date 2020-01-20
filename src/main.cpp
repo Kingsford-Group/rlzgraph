@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
 
         RLZgraph graph (ref);
         cout << "Built the initial tree" << endl;
-        for(int i = id; i<strings.size(); i++){
+        for(int i = id; i<10; i++){
             cout << i << endl;
             graph.addString(strings[i]);
         }
@@ -116,20 +116,27 @@ int main(int argc, char* argv[]){
         //     cout << endl;
         //     k++;
         // }
-
+        // graph.printGraph();
         // string test = graph.reconstruct(3);
-        for (int i=id;i<strings.size();i++){
+        for (int i=id;i<10;i++){
             cout << i<< endl;
             string test = graph.reconstruct(i-id);
+
+            // cout << graph.rlzarr.size() << endl;
+            // cout << i-id << endl;
             string test2 = graph.rlzarr[i-id].reconstruct(graph.ref);
             // cout << test.length() << endl;
+            // cout << test2.length() << endl;
             // cout << strings[i].length()  << endl;
-            // cout << "======" << endl;
+
             assert(test.compare(strings[i])==0);
+            assert(test2.compare(strings[i])==0);
+            // cout << "======" << endl;
             // cout  << test << endl;
             // cout << strings[i] << endl;
             // cout << "============" << endl;
         }
+        cout << "reconstruct works alright" << endl;
 
 /*
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 

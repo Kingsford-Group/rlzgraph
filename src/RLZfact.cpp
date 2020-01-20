@@ -18,14 +18,14 @@ RLZfact::RLZfact(vector<Phrase> phrases, long int id){
     this->phrases = phrases;
 }
 
-RLZfact::RLZfact(string & ref, SuffixTree & tree, string s, long int id){
+RLZfact::RLZfact(SuffixTree & tree, string s, long int id){
     stringID = id;
     // perform factorization
     int i = 0;
     int idd = 0;
     while (i< s.length()) {
         // cout << "--------------------- " << i << endl;
-        // cout << "--- Adding from position: " << i << endl;
+        cout << "--- Adding from position: " << i << endl;
         pair<int, int> ret = tree.traverse(s.substr(i, s.length()-i));
         Phrase phrase (idd, (long int)ret.first, (long int)ret.second);
         // if (ret.first + ret.second -1 >= ref.length()) {
@@ -43,10 +43,10 @@ RLZfact::RLZfact(string & ref, SuffixTree & tree, string s, long int id){
 
 }
 
-string RLZfact::reconstruct(string & ref){
+string RLZfact::reconstruct(string * ref){
     string s ="";
     for (Phrase p : phrases){
-        s+=ref.substr(p.pos,p.length);
+        s+=ref->substr(p.pos,p.length);
     }
     return s;
 }

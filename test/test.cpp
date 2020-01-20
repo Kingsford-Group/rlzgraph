@@ -12,12 +12,12 @@ struct classcomp2{
 int main(){
     string ref = "ATATTCGACGAGAT";
     string s1 = "ATAATTCGATTCGAT";
-    string s2 = "ATTTCGAGATATA";
+    string s2 = "ATTTCGAGAM";
 
     RLZgraph graph(ref);
 
     // graph.addString("TTCGA");
-    graph.addString(s1);
+    // graph.addString(s1);
     graph.addString(s2);
 
     int i = 0;
@@ -33,7 +33,7 @@ int main(){
     auto it = graph.nodeDict.end();
     it--;
     for (;it!=graph.nodeDict.begin(); it--){
-        printf("Node at %lu (pos: %lu, length:%lu): \n",it->first, it->second->pos,it->second->length);
+        printf("Node at %lu (pos: %lu, length:%lu): %s\n",it->first, it->second->pos,it->second->length, graph.access(it->second).c_str());
         auto colorit = it->second->Ends.begin();
         for (;colorit!=it->second->Ends.end();colorit++){
             printf("   It has ends at string %lu: ", colorit->first);
@@ -47,12 +47,13 @@ int main(){
     }
 
     string t1 = graph.reconstruct(0);
-    string t2 = graph.reconstruct(1);
+    cout << *(graph.ref) << endl;
+    // string t2 = graph.reconstruct(1);
     // assert(s1==t1);
     // assert(s2==t2);
     cout << t1 << endl;
     cout << endl;
-    cout << t2 << endl;
+    // cout << t2 << endl;
 
     // map<long int, vector<long int>, classcomp2> Starts;
 
