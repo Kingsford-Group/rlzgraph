@@ -2,11 +2,12 @@
 #define __SuffixTree_H__
 
 #include <iostream>
+#include <algorithm>
 #include <vector>
 
 using namespace std;
 
-static int ALP_SIZE = 7;
+static int ALP_SIZE = 17;
 
 class Node{
     public:

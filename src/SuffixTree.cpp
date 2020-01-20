@@ -51,7 +51,17 @@ int SuffixTree::getIdx(char c){
         case 'T': return 3;
         case 'N': return 4;
         case 'M': return 5;
-        case '$': return 6;
+        case 'Y': return 6;
+        case 'S': return 7;
+        case 'R': return 8;
+        case 'K': return 9;
+        case 'B': return 10;
+        case 'D': return 11;
+        case 'H': return 12;
+        case 'V': return 13;
+        case 'U': return 14;
+        case 'W': return 15;
+        case '$': return 16;
     }
    cerr << "Unrecognized Character: " << c << endl;
    exit(1);

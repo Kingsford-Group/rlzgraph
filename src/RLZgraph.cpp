@@ -25,6 +25,8 @@ void RLZgraph::addString(string s){
     RLZfact newFact (ref, tree, s, colorid);
     rlzarr.push_back(newFact);
 
+    this->ref = tree.ref;
+
     int r = 0;
     for (Phrase p : newFact.phrases){
         numEdges++;
