@@ -8,9 +8,11 @@
 #include <vector>
 #include <fstream>
 #include <map>
+#include <set>
 #include "RLZfact.h"
 #include "SuffixTree.h"
 #include <boost/dynamic_bitset.hpp>
+#include <unordered_set>
 
 
 struct classcomp{
@@ -36,10 +38,14 @@ class RLZNode{
     long int pos;
     long int length;
 
-    map<long int, vector<long int> > Ends; // color: [rank]
-    map<long int, vector<long int>, classcomp> Starts;
+    map<long int, unordered_set<long int> > Ends; // color: [rank]
+    map<long int, unordered_set<long int> > Starts;
+//     unordered_map<long int, vector<long int> > Ends; // color: [rank]
+//     unordered_map<long int, vector<long int> > Starts;
+// >>>>>>> 468633a044c17bb21dc42fde65452fdd129672ab
 
     RLZNode * next; // next node in reference coordinate
+    RLZNode * prev; // previous node in reference coordinate
 
     RLZNode(){}
     RLZNode(long int pos){
@@ -49,6 +55,17 @@ class RLZNode{
         this->pos = pos;
         this->length = length;
     }
+};
+
+class Bubble{
+    public:
+    RLZNode * begin;
+    RLZNode * end;
+    vector<RLZNode *> firstPath;
+    vector<RLZNode *> secondPath;
+
+    Bubble(){}
+    Bubble(RLZNode* b, RLZNode* e, vector<RLZNode *> refPath, vector<RLZNode *> otherPath);
 };
 
 class RLZgraph{
@@ -96,19 +113,20 @@ class RLZgraph{
     //returns substring of the node defined by break at position pos
     string access(RLZNode* node); 
 
-    // writes in the format: <pos> <length> <color,rank>
+    // writes in the format: <pos>\t<length>\t<color,rank>
     void writeGraph(string outname);
+    // writes in the format: <stringID>\t<phrases>
+    void writePhrases(string outname);
 
-<<<<<<< HEAD
-=======
-    vector<long int> traverse(long int pos); // returns neighbors that locate only downstream of the queried position
-    string access(RLZNode * node); //returns substring of the node defined by break at position pos
-    
-    void writeGraph(string name);
-    
->>>>>>> 36bbb10e062cc01aadb53870800b98686b24dcb3
-    void DFS(long int curr_pos, vector<bool> visited);
-    void print_DFS();
+    // void DFS(long int curr_pos, vector<bool> visited);
+    // void print_DFS();
+
+    vector<Bubble> findAllBubbles();
+    vector<Bubble> findBubbles(int color1, int color2); // finds bubbles between only color1 and color2
+    vector<Bubble> findBubbles(int color); // finds bubbles between reference and color.
+
+
+    vector<RLZNode*> superpath(RLZNode* next, long int pos, long int color); // the second parameter could be pos or rank. Use rank if it is in the compressed string. color = -1 if reference 
 
     
 

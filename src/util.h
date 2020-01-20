@@ -12,9 +12,9 @@
 // extern string Input_strings = "";
 
 void print_help(){
-    printf("--------------------------------------------------------------\n");
-    printf("|  USAGE: rlzgraph -r <ref.fa> -i <input.fa> -o <outputname> |\n");
-    printf("--------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("|  USAGE: rlzgraph -r <ref.fa> -i <input.fa> -g <output_graph_name> -p <output_phrase_name> |\n");
+    printf("--------------------------------------------------------------------------------------------\n");
     printf("-i is required. If reference fasta is missing, the first sequence of the input fasta file will be used as reference.\n");
 }
 void print_version(){}

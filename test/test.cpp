@@ -37,8 +37,9 @@ int main(){
         auto colorit = it->second->Ends.begin();
         for (;colorit!=it->second->Ends.end();colorit++){
             printf("   It has ends at string %lu: ", colorit->first);
-            for (long int r : colorit->second){
-                cout << r <<"," ;
+            auto rankit = colorit->second.begin();
+            for (; rankit!=colorit->second.end(); rankit++){
+                cout << *rankit << ",";
             }
             cout << endl;
         }

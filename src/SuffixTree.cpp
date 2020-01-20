@@ -38,7 +38,6 @@ bool SuffixTree::walkDown(Node * currNode){
         activeEdge += edgeLength(currNode); 
         activeLength -= edgeLength(currNode); 
         activeNode = currNode; 
-        // cout << "walkdown" <<endl;
         return true; 
     } 
     return false; 
@@ -51,18 +50,22 @@ int SuffixTree::getIdx(char c){
         case 'G': return 2;
         case 'T': return 3;
         case 'N': return 4;
+        case 'M': return 5;
+        case '$': return 6;
     }
-    cerr << "Unrecognized Character: " << c << endl;
-    exit(1);
+   cerr << "Unrecognized Character: " << c << endl;
+   exit(1);
 }
 
-void SuffixTree::extendSuffixTree(int pos){
+void SuffixTree::extendSuffixTree(int pos, string & text){
     // cout << "============= Pos: " << pos << endl;
     // cout << "ActiveNode: " << activeNode << endl;
     leafEnd = pos;
     remainingSuffixCount++;
     lastNewNode=NULL;
     int walkdown = 0;
+
+    // cout << "HERE: " << text<< endl;
 
     while(remainingSuffixCount>0){
         if (activeLength==0) activeEdge = pos;
@@ -76,6 +79,7 @@ void SuffixTree::extendSuffixTree(int pos){
 
         // if the next character is not in tree yet, creates new node
         // cout << (activeNode ->children[getIdx(text[activeEdge])]==NULL)<<endl;
+        // cout << "ActiveEdge: " << activeEdge << endl;
         if (activeNode->children[getIdx(text[activeEdge])] == NULL){
             // cout << "case 1" << endl;
             // cout << "Index: " << getIdx(text[activeEdge]) << endl;
@@ -96,6 +100,7 @@ void SuffixTree::extendSuffixTree(int pos){
             }
 
             // current character in tree
+            // cout << "pos: " << pos << endl;
             if (text[next->start + activeLength] == text[pos]){
                 // cout << "case 2" << endl;
                 if (lastNewNode != NULL && activeNode != root){
@@ -125,6 +130,7 @@ void SuffixTree::extendSuffixTree(int pos){
             split->children[getIdx(text[pos])]->height = split->height + edgeLength(split->children[getIdx(text[pos])]);
             
             next->start += activeLength;
+            // cout << "Next->start: " << next->start << endl;
             split->children[getIdx(text[next->start])] = next;
 
             if (lastNewNode != NULL){
@@ -142,18 +148,41 @@ void SuffixTree::extendSuffixTree(int pos){
             activeNode = activeNode -> suffixLink;
         }
     }
+
 }
 
 SuffixTree::SuffixTree(string ref){
-    text = ref;  
-    size = text.length();
+    this->ref = ref;
+    this->ref+="$";
+    string reversed = ref.substr(0, ref.length());
+    reverse(reversed.begin(), reversed.end());
+    this->ref+= reversed;
+    size = this->ref.length();
+
     int i;
     int rootEnd1 = -1;
     rootEnd = &rootEnd1;
     root = new Node(-1, rootEnd,0);
 
     activeNode = root;
-    for (i=0;i<size;i++) extendSuffixTree(i);
+    for (i=0;i<size;i++){
+        // cout << i << " " << this->ref[i] << endl;  
+        // cout << this->ref.length() << endl; 
+        extendSuffixTree(i, this->ref);
+    }
+    // cout << "forward" << endl;
+
+    // add the reversed string
+    // for (i=size-1; i>=0; i--) {
+    // cout << i << endl;
+    //     extendSuffixTree(i);
+    // }
+}
+
+void SuffixTree::addString(string & text){
+    for (int i = 0; i<text.length(); i++){
+        extendSuffixTree(i, text);
+    }
 }
 
 // go as far as possible in the tree.
@@ -164,6 +193,14 @@ pair<int, int> SuffixTree::traverse(string s){
     int length = 0;
     int inEdge = 0;
     int start = -1;
+
+    if (root->children[getIdx(s[0])] == NULL){
+        int newsize = size+1;
+        root->children[getIdx(s[0])] = new Node(size, &(newsize), root);
+        size = size+1;
+        return make_pair(newsize, 1);
+    }
+
     while (i < s.length()){
         // cout << "Curr Node: " << next->label << endl;
         // for (int i=0;i<ALP_SIZE;i++){
@@ -186,7 +223,7 @@ pair<int, int> SuffixTree::traverse(string s){
             else return make_pair(start, i);
         }
         else {
-            if (s[i] == text[next->start + inEdge]){
+            if (s[i] == ref[next->start + inEdge]){
                 inEdge++;
                 // length--;
             } else {
@@ -198,3 +235,4 @@ pair<int, int> SuffixTree::traverse(string s){
     }
     return make_pair(start,s.length()); //no match
 }
+

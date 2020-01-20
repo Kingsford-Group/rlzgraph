@@ -24,8 +24,8 @@ using namespace std;
 
 string Input_ref="";
 string Input_strings="";
-string Output_name="";
-
+string Output_graph_name="";
+string Output_phrase_name="";
 
 bool parse_argument(int argc, char * argv[]){
     bool success=true;
@@ -43,14 +43,16 @@ bool parse_argument(int argc, char * argv[]){
             Input_ref = string(argv[++i]);
             // i++;
         }
-        else if (string(argv[i])=="-o"){
-            cout << i << endl;
-            Output_name = string(argv[++i]);
-            cout << i << endl;
-            // i++;
-        }
         else if (string(argv[i])=="-i"){
             Input_strings = string(argv[++i]);
+            // i++;
+        }
+        else if (string(argv[i])=="-g"){
+            Output_graph_name = string(argv[++i]);
+            // i++;
+        }        
+        else if (string(argv[i])=="-p"){
+            Output_phrase_name = string(argv[++i]);
             // i++;
         }
         else{
@@ -92,9 +94,14 @@ int main(int argc, char* argv[]){
         }
         cout << "Finished adding sequences." << endl;
 
-        if (Output_name!=""){
-            cout<<"Writing graph to " << Output_name << endl;
-            graph.writeGraph(Output_name);
+        if (Output_graph_name!=""){
+            cout<<"Writing graph to " << Output_graph_name << endl;
+            graph.writeGraph(Output_graph_name);
+        }
+
+        if (Output_phrase_name!=""){
+            cout<<"Writing phrases to " << Output_phrase_name << endl;
+            graph.writePhrases(Output_phrase_name);
         }
 
         // int k=0;
@@ -110,19 +117,19 @@ int main(int argc, char* argv[]){
         //     k++;
         // }
 
-        string test = graph.reconstruct(3);
-        // for (int i=id;i<strings.size();i++){
-        //     cout << i<< endl;
-        //     string test = graph.reconstruct(i-id);
-        //     string test2 = graph.rlzarr[i-id].reconstruct(graph.ref);
-        //     cout << test.length() << endl;
-        //     cout << strings[i].length()  << endl;
-        //     cout << "======" << endl;
-        //     assert(test.compare(strings[i])==0);
-        //     // cout  << test << endl;
-        //     // cout << strings[i] << endl;
-        //     cout << "============" << endl;
-        // }
+        // string test = graph.reconstruct(3);
+        for (int i=id;i<strings.size();i++){
+            cout << i<< endl;
+            string test = graph.reconstruct(i-id);
+            string test2 = graph.rlzarr[i-id].reconstruct(graph.ref);
+            // cout << test.length() << endl;
+            // cout << strings[i].length()  << endl;
+            // cout << "======" << endl;
+            assert(test.compare(strings[i])==0);
+            // cout  << test << endl;
+            // cout << strings[i] << endl;
+            // cout << "============" << endl;
+        }
 
 /*
         cout << "Size of starts: " << graph.phraseStarts.size() <<endl; 
@@ -152,45 +159,6 @@ int main(int argc, char* argv[]){
 
 
     }
-    
-    // string ref = "ATATTCGACGAGAT";
-    // vector<long int> Q ={0,2,3,1};
-    // vector<long int> B2 ={0,3,9,14};
-    // map<long int, long int> B;
-    // B[0]=0;
-    // B[3]=1;
-    // B[9]=2;
-    // B[14]=3;
-
-    // long int len=15;
-    
-    // boost::dynamic_bitset<> Bitarray(len);
-    // Bitarray[0] = 1;
-    // Bitarray[3] = 1;
-    // Bitarray[9] = 1;
-    // Bitarray[14] = 1;
-    // // int b =1;
-    // // b = (b << 14) | (1<< 11)|(1<<5)|1;
-    // // cout << b << endl;
-    // // printf("%16s\n", b);
-    // RLZfact fact(Q, B, B2, Bitarray, len);
-
-    // vector<RLZfact> factarr = {fact};
-    
-    // RLZgraph graph(ref, factarr);
-
-    // for (int i = 0; i < 5; i++){
-    //     cout << i <<": " ;
-    //     for(pair<long int, long int> p : graph.HB[i])
-    //         printf("(%u,%u)", p.first, p.second);
-    //     cout << endl;
-    // }
-
-    // for(auto it = graph.H.cbegin();it!=graph.H.cend();++it)
-    //     cout << it->first << ": " << it->second << endl;
-
-    // graph.print_DFS();
-    // printdec2bin(graph.BR, len);
     else {
         print_help();
         exit(1);

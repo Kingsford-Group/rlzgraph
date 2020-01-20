@@ -6,7 +6,7 @@
 
 using namespace std;
 
-static int ALP_SIZE = 5;
+static int ALP_SIZE = 7;
 
 class Node{
     public:
@@ -30,7 +30,8 @@ class Node{
 
 class SuffixTree{
     public:
-    string text;
+    string ref;
+
     Node * root = NULL;
     Node * lastNewNode = NULL;
     Node * activeNode = NULL;
@@ -48,7 +49,8 @@ class SuffixTree{
     int edgeLength(Node * currNode);
     bool walkDown(Node * currNode);
     int getIdx(char c);
-    void extendSuffixTree(int pos);
+    void extendSuffixTree(int pos, string & text);
+    void addString(string & text);
     SuffixTree(string ref);
     pair<int, int> traverse(string s);
 
