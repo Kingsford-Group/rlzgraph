@@ -26,6 +26,7 @@ string Input_ref="";
 string Input_strings="";
 string Output_graph_name="";
 string Output_phrase_name="";
+int ref_idx=0;
 
 bool parse_argument(int argc, char * argv[]){
     bool success=true;
@@ -46,6 +47,9 @@ bool parse_argument(int argc, char * argv[]){
         else if (string(argv[i])=="-i"){
             Input_strings = string(argv[++i]);
             // i++;
+        }
+        else if (string(argv[i])=="-ii"){
+            ref_idx = stoi(argv[++i]);
         }
         else if (string(argv[i])=="-g"){
             Output_graph_name = string(argv[++i]);
@@ -79,7 +83,7 @@ int main(int argc, char* argv[]){
             vector<string> refv = readFASTA(Input_ref);
             ref = refv[0]; 
         } else {
-            ref = strings[0];
+            ref = strings[ref_idx];
             id = 1;
         }
 
@@ -88,7 +92,8 @@ int main(int argc, char* argv[]){
 
         RLZgraph graph (ref);
         cout << "Built the initial tree" << endl;
-        for(int i = id; i<10; i++){
+        for(int i = 0; i<strings.size(); i++){
+            if (id != 0 && i==ref_idx) continue;    // does not add ref string
             cout << i << endl;
             graph.addString(strings[i]);
         }
@@ -118,13 +123,19 @@ int main(int argc, char* argv[]){
         // }
         // graph.printGraph();
         // string test = graph.reconstruct(3);
-        for (int i=id;i<10;i++){
+        int j = 0;
+        for (int i=0;i<strings.size();i++){
+            if (id != 0 && ref_idx == i) continue;    // does not add ref string
+
             cout << i<< endl;
-            string test = graph.reconstruct(i-id);
+            string test = graph.reconstruct(j);
+            
+            cout << "reconstructed from graph" << endl;
 
             // cout << graph.rlzarr.size() << endl;
             // cout << i-id << endl;
-            string test2 = graph.rlzarr[i-id].reconstruct(graph.ref);
+            string test2 = graph.rlzarr[j].reconstruct(graph.ref);
+            cout << "reconstructed from phrases" << endl;
             // cout << test.length() << endl;
             // cout << test2.length() << endl;
             // cout << strings[i].length()  << endl;
@@ -135,6 +146,7 @@ int main(int argc, char* argv[]){
             // cout  << test << endl;
             // cout << strings[i] << endl;
             // cout << "============" << endl;
+            j++;
         }
         cout << "reconstruct works alright" << endl;
 

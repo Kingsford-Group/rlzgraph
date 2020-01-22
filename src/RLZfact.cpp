@@ -25,7 +25,7 @@ RLZfact::RLZfact(SuffixTree & tree, string s, long int id){
     int idd = 0;
     while (i< s.length()) {
         // cout << "--------------------- " << i << endl;
-        cout << "--- Adding from position: " << i << endl;
+        // cout << "--- Adding from position: " << i << endl;
         pair<int, int> ret = tree.traverse(s.substr(i, s.length()-i));
         Phrase phrase (idd, (long int)ret.first, (long int)ret.second);
         // if (ret.first + ret.second -1 >= ref.length()) {

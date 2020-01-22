@@ -24,6 +24,8 @@ void RLZgraph::addString(string s){
     int colorid = rlzarr.size();
     long int oldLength = this->ref->length();
     RLZfact newFact (tree, s, colorid);
+    cout << "Number of phrases: " << newFact.phrases.size() << endl;
+
     rlzarr.push_back(newFact);
 
     cout << this->ref->length() << endl;
@@ -273,16 +275,25 @@ void RLZgraph::writeGraph(string outname){
         exit(1);
     }
 
-    output << this->ref << endl;
+    output << *(this->ref) << endl;
     output << "POS\tLENGTH\tCOLOR,RANK" << endl;
     auto nodeit = nodeDict.end();
     while(nodeit!=nodeDict.begin()){
         nodeit--;
         output << nodeit->second->pos << "\t" << nodeit->second->length <<"\t";
-        auto colorit = nodeit->second->Ends.begin();
+        
+        auto colorit = nodeit->second->Starts.begin();
+        for(;colorit!=nodeit->second->Starts.end();colorit++){
+            for(long int rank : colorit->second){
+                output << colorit->first << "," << rank << ";";
+            }
+        }
+        output << "\t";
+        
+        colorit = nodeit->second->Ends.begin();
         for (;colorit!=nodeit->second->Ends.end();colorit++){
             for(long int rank : colorit->second){
-                output<< colorit->first <<","<<rank<<"\t";
+                output<< colorit->first <<","<<rank<<";";
             }
         }
         output << endl;
