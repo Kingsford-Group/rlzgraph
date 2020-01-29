@@ -161,11 +161,46 @@ void SuffixTree::extendSuffixTree(int pos, string & text){
 
 }
 
+char revCompHelper(char c){
+    switch (c){
+        case 'A': return 'T';
+        case 'C':return 'G';
+        case 'G': return 'C';
+        case 'T': return 'A';
+        case 'N': return 'W';
+        case 'M': return 'A';
+        case 'Y': return 'B';
+        case 'S': return 'D';
+        case 'R': return 'H';
+        case 'K': return 'V';
+        case 'B': return 'M';
+        case 'D': return 'Y';
+        case 'H': return 'S';
+        case 'V': return 'R';
+        case 'U': return 'K';
+        case 'W': return 'N';
+        case '$': return 16;
+    }
+    cerr << "Unrecognized Character (revComp): " << c << endl;
+    exit(1);
+}
+
+string reverseComp(string toreverse){
+    string s ="";
+    for (int i=0;i<toreverse.length();i++){
+        s+=revCompHelper(toreverse[i]);
+    }
+    reverse(s.begin(), s.end());
+    return s;
+
+}
+
+
 SuffixTree::SuffixTree(string ref){
     this->ref = ref;
-    this->ref+="$";
     string reversed = ref.substr(0, ref.length());
-    reverse(reversed.begin(), reversed.end());
+    reversed = reverseComp(reversed);
+    this->ref+="$";
     this->ref+= reversed;
     size = this->ref.length();
 
