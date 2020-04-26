@@ -26,6 +26,7 @@ string Input_ref="";
 string Input_strings="";
 string Output_graph_name="";
 string Output_phrase_name="";
+int Strings_to_use = 0;
 int ref_idx=0;
 
 bool parse_argument(int argc, char * argv[]){
@@ -59,6 +60,10 @@ bool parse_argument(int argc, char * argv[]){
             Output_phrase_name = string(argv[++i]);
             // i++;
         }
+        else if (string(argv[i])=="-n"){
+            Strings_to_use = stoi(argv[++i]);
+            // i++;
+        }
         else{
             cerr << "Unknown argument: " << string(argv[i]) << endl;\
             exit(1);
@@ -75,12 +80,12 @@ int main(int argc, char* argv[]){
     if (success){
         
         string ref;
-        vector<string> strings = readFASTA(Input_strings);
+        vector<string> strings = readFASTA(Input_strings, Strings_to_use);
         int start = 0;
         int id = 0;
 
         if (Input_ref!=""){
-            vector<string> refv = readFASTA(Input_ref);
+            vector<string> refv = readFASTA(Input_ref, 0);
             ref = refv[0]; 
         } else {
             ref = strings[ref_idx];
@@ -91,6 +96,7 @@ int main(int argc, char* argv[]){
         cout << "Length of reference: " << ref.length() << endl;
 
         RLZgraph graph (ref);
+        
         cout << "Built the initial tree" << endl;
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
@@ -108,6 +114,10 @@ int main(int argc, char* argv[]){
             cout<<"Writing phrases to " << Output_phrase_name << endl;
             graph.writePhrases(Output_phrase_name);
         }
+
+        cout << graph.tree.size << endl;
+        printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
+
 
         // int k=0;
         // for (RLZfact fact : graph.rlzarr){
@@ -174,7 +184,6 @@ int main(int argc, char* argv[]){
             it++;
         }
 */
-        printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
 
 
     }

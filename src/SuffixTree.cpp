@@ -198,10 +198,10 @@ string reverseComp(string toreverse){
 
 SuffixTree::SuffixTree(string ref){
     this->ref = ref;
-    string reversed = ref.substr(0, ref.length());
-    reversed = reverseComp(reversed);
-    this->ref+="$";
-    this->ref+= reversed;
+    // string reversed = ref.substr(0, ref.length());
+    // reversed = reverseComp(reversed);
+    // this->ref+="$";
+    // this->ref+= reversed;
     size = this->ref.length();
 
     int i;

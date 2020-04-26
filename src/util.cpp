@@ -28,7 +28,7 @@ bool parse_argument(int argc, char * argv[]){
     return success;
 }
 
-vector<string> readFASTA(string filename){
+vector<string> readFASTA(string filename, int num_seq){
     fstream input(filename);
     if (!input.good()) {
         cerr << "BAD INPUT!: " << filename << endl;
@@ -41,13 +41,20 @@ vector<string> readFASTA(string filename){
     while (getline(input, line).good()){
         if (line[0] == '>' ){
             id++;
-            strings.push_back(content);
-            content.clear();
+            if(id != 0){
+                strings.push_back(content);
+                content.clear();
+            }
         } else if (!line.empty()){
             if(line.find(' ')!=string::npos){
                 content.clear();
             } else {
                 content+=line;
+            }
+        }
+        if (num_seq > 0){
+            if (id > num_seq){
+                break;
             }
         }
     }
