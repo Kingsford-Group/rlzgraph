@@ -54,7 +54,8 @@ vector<string> readFASTA(string filename, int num_seq){
             }
         }
     }
-    cout << "Read " << id << " strings. "<< endl;
+    strings.push_back(content);
+    cout << "Read " << strings.size() << " strings. "<< endl;
     return strings;
 }
 
