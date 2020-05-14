@@ -21,6 +21,10 @@ struct Phrase{
     bool operator==(const Phrase & p) const{
         return (this->start == p.start && this->length == p.length);
     }
+
+    void print() const{
+        printf("(%ul, %ul)", start, length);
+    }
 };
 
 /**
@@ -29,7 +33,7 @@ struct Phrase{
  * For endings, there are multiple intervals.
 */
 struct Source{
-    Phrase * p;
+    const Phrase * p;
     pair<int, int> beg_interval;       // stored as one pair of begin and end pair
     vector<pair<int, int> > end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
     int length;
@@ -43,7 +47,7 @@ struct Source{
  * @brief hash function for phrases
  * 
  */
-class PhraseHash { 
+class PhraseHash {
 public: 
     // id is returned as hash function 
     size_t operator()(const Phrase& p) const
@@ -68,32 +72,21 @@ class RLZ{
 
     public: 
     csa_wt<> csa;       // the compressed suffix array to store the *reversed* reference
-    vector<vector<Phrase *> > compressed_strings;
+    vector<vector<const Phrase *> > compressed_strings;
     unordered_set<Phrase, PhraseHash> phrases;
     unordered_set<Source, SourceHash> sources;
+    bool optimized = false;
     
-    /* Construct a suffix array using the provided reference*/
-    RLZ(string ref){
-        construct_im(csa, ref, 1);
-    }
-    
+    RLZ(string ref);
+
     /**
      * @brief Factor the input string into phrases
      * 
      * @param to_process  input string 
      * @return int the number of phrases
      */
-    int RLZFactor(string to_process){
-        vector<Phrase*> phrases;
-        auto strIt = to_process.begin();
-        while (strIt != to_process.end()){
-           Phrase * p = query_bwt(strIt, to_process.end());
-           phrases.push_back(p);
-        }
-        compressed_strings.push_back(phrases);
-        return phrases.size();
-    }
-
+    int RLZFactor(string to_process);
+    
     /**
      * @brief Query the bwt until it cannot go further. Creates a source if it has not been created.
      * 
@@ -101,68 +94,29 @@ class RLZ{
      * @param end  -- end iterator of the input string
      * @return Phrase* -- returned source
      */
-    Phrase* query_bwt(string::iterator strIt, string::iterator end){
-        size_type l = 0;
-        size_type r = csa.size()-1;
-        size_type l_res = 0;
-        size_type r_res = 0;
-        int length = 0;
-        do {
-            l_res = l;
-            r_res = r;
-            backward_search(csa, l, r, char(*strIt), l, r);
-            strIt ++;
-            length ++;
-        }
-        while(strIt != end &&  r+1-l > 0);
-
-        // start interval is (l_res, r_res)
-        // end interval is one more LF operation
-        pair<int, int> beg_interval = make_pair(l_res, r_res);
-        vector<pair<int, int>> end_interval; 
-        for (int i=1; i < csa.sigma;i++){
-            int cc = csa.C[i];
-            int l_rank = csa.bwt.rank(l_res, csa.comp2char[i]);
-            int r_rank = csa.bwt.rank(r_res+1, csa.comp2char[i]);
-            pair<int, int> end_pair = make_pair(cc+l_rank, cc+r_rank);
-            end_interval.push_back(end_pair);
-        }
-
-        Phrase* p= create_phrase(l_res, length-1);
-        Source source = {p, beg_interval, end_interval, length-1};
-        auto ret = sources.insert(source);
-        return p;
-    }
+    const Phrase* query_bwt(string::iterator & strIt, string::iterator end);
     
     /**
-     * @brief Decode the compressed string
+     * @brief Print compressed string as a series of phrases
      * 
-     * @param stringID id of the compressed strings to decompress
-     * @return string the decompressed string
+     * @param stringID 
      */
-    string decode(int stringID){
-        
-    }
+    void print_comp_string(int stringID);
 
     /***************************
      *    Helper functions     *
     ****************************/
 
-   /**
+    /**
     * @brief Create a phrase object
     * 
     * @param pos 
     * @param length 
     * @return Phrase* 
     */
-    Phrase* create_phrase(int pos, int length){
-        Phrase phrase = {csa[pos], length};
-        auto ret = phrases.insert(phrase);
-        Phrase p = *(ret.first);
-        return &p;
-    }
+    const Phrase* create_phrase(int pos, int length);
 
-    
+ 
 };
 
 #endif
