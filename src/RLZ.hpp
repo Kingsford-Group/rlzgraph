@@ -1,3 +1,13 @@
+/**
+ * @file RLZ.hpp
+ * @author Yutong Qiu (yutongq@andrew.cmu.edu)
+ * @brief Defines RLZ factorization object
+ * @version 0.1
+ * @date 2020-05-15
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef __RLZ_H__
 #define __RLZ_H__
 
@@ -35,8 +45,8 @@ struct Phrase{
 */
 struct Source{
     const Phrase * p;
-    pair<int, int> beg_interval;       // stored as one pair of begin and end pair
-    vector<pair<int, int> > end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
+    mutable pair<int, int> beg_interval;       // stored as one pair of begin and end pair
+    mutable vector<int> end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
     int length;
 
     bool operator==(const Source & s) const{
@@ -44,10 +54,12 @@ struct Source{
     }
 
     void print() const{
+        p->print();
+        cout << endl;
         cout << "Begin: " << beg_interval.first <<", " << beg_interval.second<< endl;
         cout << "End: ";
         for(int i=0; i<end_interval.size(); i++){
-            cout << end_interval[i].first << ", " << end_interval[i].second << "; ";
+            cout << end_interval[i] << "; ";
         }
         cout << endl;
     }
@@ -82,6 +94,7 @@ class RLZ{
 
     public: 
     csa_wt<> csa;       // the compressed suffix array to store the *reversed* reference
+    csa_wt<> csa_rev;
     vector<vector<const Phrase *> > compressed_strings;
     unordered_set<Phrase, PhraseHash> phrases;
     unordered_set<Source, SourceHash> sources;
@@ -108,7 +121,16 @@ class RLZ{
      * @return Phrase* -- returned source
      */
     const Phrase* query_bwt(string::iterator & strIt, string::iterator end);
-    
+
+    /**
+     * @brief Substitute each phrase with corresponding string.
+     * 
+     * @param stringID 
+     * @return string 
+     */
+    string decode(int stringID);
+
+
     /**
      * @brief Print compressed string as a series of phrases
      * 
@@ -132,6 +154,38 @@ class RLZ{
     * @return Phrase* 
     */
     const Phrase* create_phrase(int pos, int length);
+
+    /**
+     * @brief Search for the occurrence of the given parameter in the given range. Updates the resulting range and (possibly) shrinked range.
+     * 
+     * @param l Left boundary to search for (and stores the left boundary result) 
+     * @param r Right boudary to search for (and stores the right boundary result)
+     * @param C Character to search for
+     * @param l_beg Left starting range (stores the shrinked left range)
+     * @param r_beg Right starting range (stores the shrinked right range)
+     */
+    void backward_search_rank(int & l, int & r, char C, int & l_beg, int & r_beg);
+
+        
+    /**
+     * @brief Go through all phrases (unqiue) and find the begin intervals of their sources
+     * Query each phrase on the reversed reversed BWT. (backward search)
+     */
+    void processSources();
+    
+    /**
+     * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
+     * 
+     * @param s source to modify
+     */
+    void transferSourceEnds(const Source & s);
+
+    /**
+     * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
+     * 
+     * @param s source to modify
+     */
+    void transferSourceStarts(const Source & s);
 
  
 };

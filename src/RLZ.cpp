@@ -1,11 +1,17 @@
 #include "RLZ.hpp"
+#include "optimize_algo.hpp"
 #include <iostream>
 
 using namespace std;
 
 /* Construct a suffix array using the provided reference*/
 RLZ::RLZ(string ref){
+    string revRef;
+    revRef.assign(ref.rbegin(), ref.rend());
+
     construct_im(csa, ref, 1);
+    construct_im(csa_rev, revRef, 1);
+    
     totalLength = csa.size();
 }
 
@@ -18,8 +24,59 @@ int RLZ::RLZFactor(string & to_process){
     }
     compressed_strings.push_back(phrases);
     numPhrases+=phrases.size();
+
+    processSources();
+
     return phrases.size();
 }
+
+void RLZ::processSources(){
+    //TODO Change that to global boolean set from user-given parameter
+    bool optimize = true;
+
+    for(auto & s : sources){
+        transferSourceStarts(s);
+        transferSourceEnds(s);
+    }
+    
+    if (optimize)
+        optimize_phrases(phrases, sources);
+    else
+        reset_phrases(phrases, sources);
+}
+
+// void RLZ::backward_search_rank(int & l, int & r, char c, int & l_beg, int & r_beg){
+//     assert(l <= r); assert(r < csa.size());
+//     size_type cc = csa.char2comp[c];
+//     if (cc == 0 and c > 0) {     // character not in BWT
+//         l = 1;
+//         r = 0;
+//     } else {
+//         size_type c_begin = csa.C[cc];
+//         if (l == 0 and r+1 == csa.size()) {
+//             l = int(c_begin);
+//             r = csa.C[cc+1] - 1;
+//             l_beg = l;
+//             r_beg = r;
+//         } else {
+//             int l_rank = csa.bwt.rank(l,c);
+//             int r_rank = csa.bwt.rank(r+1,c);
+
+//             if (l_rank == 0 && r_rank != 0) {
+//                 l_beg = l_beg + csa.bwt.select(l_rank+1, c) - l;
+//                 r_beg = r_beg -(r - csa.bwt.select(r_rank, c));
+//             } else if (l_rank != 0 && r_rank != 0){
+//                 l_beg = l_beg + csa.bwt.select(l_rank, c) - l;
+//                 r_beg = r_beg -(r - csa.bwt.select(r_rank, c));
+//             }
+
+//             l = c_begin + l_rank; // count c in bwt[0..l-1]
+//             r = c_begin + r_rank - 1; // count c in bwt[0..r]
+//         }
+//         cerr << "in rank func " << l_beg << ", " << r_beg << endl;
+//     }
+//     assert(r+1-l >= 0);
+// }
 
 
 const Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
@@ -47,18 +104,22 @@ const Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     size_type l = 0;
     size_type r = csa.size()-1;
     int l_res = 0;
-    int r_res = 0;
+    int r_res = r;
+    // int beg_s = 0;
+    // int beg_e = r;
     int length = 1;
     while(strIt != end && r+1-l > 0){
         l_res = l;
         r_res = r;
-        backward_search(csa, l, r, char(*strIt), l, r);
-        // fflush(stdout);
-        // printf("In loop: (Left: %u, Right: %u)\n", l, r);
+
+        // backward_search_rank(l, r, (*strIt), beg_s, beg_e);
+        backward_search(csa, l, r, (*strIt), l, r);
+        
         strIt ++;
-        length ++;
+        length ++; 
     }
 
+    // whether the last character is found or the last character is the end of the string
     if (r < l){
         strIt --;
         length --;
@@ -67,17 +128,12 @@ const Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         r_res = r;
     }
 
-    
-    // fflush(stdout);
-    // cerr <<  l_res << "," << r_res << endl;
-
-
     // start interval is (l_res, r_res)
-    pair<int, int> beg_interval = make_pair(int(l_res), int(r_res));
+    pair<int, int> beg_interval = make_pair(-1, -1);
     const Phrase* p= create_phrase(csa[l_res], length-1);
 
     // end interval is one more LF operation
-    vector<pair<int, int> > end_interval; 
+    vector<int> end_interval; 
     for (int i=0; i < csa.sigma;i++){
         size_type new_l = 0;
         size_type new_r = 0;
@@ -90,9 +146,9 @@ const Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         // cerr << new_l << "," << new_r << "," << (new_l <= new_r) << endl;
         if (int(new_l) <= int(new_r)){
             // cerr << "if " << new_l << "," << new_r << "," << (new_l <= new_r) << endl;
-
-            pair<int, int> end_pair = make_pair(new_l, new_r);
-            end_interval.push_back(end_pair);
+            for(int i = new_l; i <= new_r; i++){
+                end_interval.push_back(i);
+            }
         }
     }
 
@@ -103,6 +159,7 @@ const Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
 
 
 void RLZ::print_comp_string(int stringID){
+    cout << "Printing compressed strings" << endl;
     for( const Phrase* p : compressed_strings[stringID]){
         p->print();
         cout << ",";
@@ -132,23 +189,36 @@ void RLZ::print_phrases(){
     cout << endl;
 }
 
+string RLZ::decode(int stringID){
+    string toReturn;
+    for(const Phrase * p : compressed_strings[stringID]){
+        toReturn += extract(csa_rev, p->start, p->start+p->length-1);
+    }
+    return toReturn;
+}
 
-// int main(int argc, const char** argv){
+void RLZ::transferSourceEnds(const Source & s){
+    vector<int> new_endInterval;
+    for (int i : s.end_interval){
+        int new_end = 0;
+        cerr << i << " --> " ;
+        if (csa[i] == csa.size()-1) {
+            new_end = i;
+        }else{
+            new_end = csa_rev.isa[csa.size() - 2 - csa[i]];
+        }
+        cerr << new_end << endl; 
+        new_endInterval.push_back(new_end);
+    }
+    s.end_interval = new_endInterval;
+}
 
-//     string s = argv[1];
-//     string input = argv[2];
-//     reverse(s.begin(), s.end());
-//     RLZ rlz(s);
-
-//     rlz.RLZFactor(input);
-
-//     rlz.print_comp_string(0);
-
-//     rlz.print_phrases();
-//     rlz.print_sources();
-
-    
-
-//     cout << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << endl;
-//     csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", rlz.csa); 
-// }
+void RLZ::transferSourceStarts(const Source & s){
+    const Phrase * p = s.p;
+    string sub = extract(csa, p->start, p->start + p->length - 1);
+    size_type l = 0; 
+    size_type r = csa_rev.size()-1;
+    reverse(sub.begin(), sub.end());
+    backward_search(csa_rev, l, r, sub.begin(), sub.end(), l, r );   // search for the pattern in the reversed reversed BWT.
+    s.beg_interval = make_pair(l,r);
+}
