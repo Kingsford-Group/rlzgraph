@@ -5,6 +5,7 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace std;
 using namespace sdsl;
@@ -23,7 +24,7 @@ struct Phrase{
     }
 
     void print() const{
-        printf("(%ul, %ul)", start, length);
+        printf("(%u, %u)", start, length);
     }
 };
 
@@ -40,6 +41,15 @@ struct Source{
 
     bool operator==(const Source & s) const{
         return (*(this->p) == *(s.p));
+    }
+
+    void print() const{
+        cout << "Begin: " << beg_interval.first <<", " << beg_interval.second<< endl;
+        cout << "End: ";
+        for(int i=0; i<end_interval.size(); i++){
+            cout << end_interval[i].first << ", " << end_interval[i].second << "; ";
+        }
+        cout << endl;
     }
 };
 
@@ -75,7 +85,10 @@ class RLZ{
     vector<vector<const Phrase *> > compressed_strings;
     unordered_set<Phrase, PhraseHash> phrases;
     unordered_set<Source, SourceHash> sources;
+    unordered_map<char, int> newChar;
     bool optimized = false;
+    int numPhrases = 0;
+    int totalLength = 0;
     
     RLZ(string ref);
 
@@ -85,7 +98,7 @@ class RLZ{
      * @param to_process  input string 
      * @return int the number of phrases
      */
-    int RLZFactor(string to_process);
+    int RLZFactor(string & to_process);
     
     /**
      * @brief Query the bwt until it cannot go further. Creates a source if it has not been created.
@@ -102,6 +115,10 @@ class RLZ{
      * @param stringID 
      */
     void print_comp_string(int stringID);
+
+    void print_sources();
+    void print_phrases();
+
 
     /***************************
      *    Helper functions     *
