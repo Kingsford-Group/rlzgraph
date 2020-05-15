@@ -13,8 +13,7 @@ LDADD = $(HOME)/lib/libsdsl.a $(HOME)/lib/libdivsufsort.a $(HOME)/lib/libdivsufs
 LDLIBS = $(LDADD)
 
 SRCS=src/RLZ.hpp src/RLZ.cpp src/util.hpp src/main.cpp
-TESTSRCS=test/test.cpp src/RLZgraph.cpp src/RLZfact.cpp src/SuffixTree.cpp
-
+TESTSRCS=src/RLZ.hpp src/RLZ.cpp src/test.cpp
 all: bin/main 
 
 test: bin/test
@@ -26,6 +25,10 @@ bin/main: $(subst .cpp,.o,$(SRCS))
 # bin/test: $(subst .cpp,.o,$(TESTSRCS))
 # 	mkdir -p bin
 # 	$(CXX) -o $@ $^ $(LDLIBS)
+
+bin/test: $(subst .cpp,.o,$(TESTSRCS))
+	mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:
 	rm -f bin/main src/*.o test/*.o
