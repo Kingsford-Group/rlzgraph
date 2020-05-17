@@ -31,7 +31,7 @@ int RLZ::RLZFactor(string & to_process){
 
 void RLZ::processSources(){
     //TODO Change that to global boolean set from user-given parameter
-    bool optimize = false;
+    bool optimize = true;
 
     for(auto & s : sources){
         transferSourceStarts(s);
@@ -47,8 +47,77 @@ void RLZ::processSources(){
 
 void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources, int size){
 
-    vector<int> bp_count;
+    cerr << "processing" << endl;
+    vector<int> bp_count (size);
+    vector<vector<Source> > bp_pointer(size);
+    // vector<bool> bp_mark(size);
 
+    unordered_set<Phrase*> phrase_mark;
+    unordered_map<size_t, Phrase*> new_phrases;
+
+    // mark the break points
+    for(auto s : sources){
+        for(int b = s.beg_interval.first; b <= s.beg_interval.second; b++){
+            bp_count[b] += 1;
+            bp_pointer[b].push_back(s);
+        }
+        for (int e : s.end_interval){
+            if (e < s.beg_interval.first && e > s.beg_interval.second){
+                bp_count[e] +=1;
+                bp_pointer[e].push_back(s);
+            }
+        }
+    }
+
+    // iteratively find all sources
+    while(new_phrases.size() < phrases.size()){
+        auto max = max_element(bp_count.begin(), bp_count.end());
+        int argmax = distance(bp_count.begin(), max);
+
+        PhraseHash hasher;
+
+        // reset start for all phrases at argmax
+        for(Source s : bp_pointer[argmax]){
+            auto ret = phrase_mark.find(s.p);
+            if (ret == phrase_mark.end()){
+                //TODO a bp could be a beginning or an ending of the same phrase. Maybe need a better way to distinguish them. For now it does not seem to affect the approximation ratio.
+                // rank of argmax in this source's end.
+                int rank = 0;
+                int end_pos = 0;
+                int start_pos = 0;
+
+                // if bp hits a beginning.
+                if (argmax >= s.beg_interval.first && argmax <= s.beg_interval.second){
+                    for(int b = s.beg_interval.first; b <= s.beg_interval.second; b++){
+                        bp_count[b] -= 1;
+                    }
+                    start_pos = argmax;
+                    rank = argmax - s.beg_interval.first;
+                    end_pos = s.end_interval[rank];
+                } 
+                // it bp hits an end.
+                else {
+                    end_pos = argmax;
+                    for(rank = 0; rank < s.end_interval.size(); rank++){
+                        int e = s.end_interval[rank];
+                        bp_count[e] -= 1;
+                    }
+                    start_pos = s.beg_interval.first + rank;
+                }
+
+                s.p->setStart(start_pos);
+                new_phrases[hasher(*(s.p))] = s.p;
+                phrase_mark.insert(s.p);
+
+                // cerr << start_pos << ", " << end_pos << endl;
+            }
+        }
+        // cerr << "Count: " << bp_count[argmax] << ", "<< bp_pointer[argmax].size() << endl;
+        // cerr << "--------" << endl;
+        assert(bp_count[argmax] == 0);
+    }
+
+    phrases = new_phrases;
 }
 
 void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources){
@@ -161,6 +230,8 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
             }
         }
 
+        sort(end_interval.begin(), end_interval.end());
+
         Source source = {p, beg_interval, end_interval, length-1};
         auto ret = sources.insert(source);
 
@@ -247,6 +318,7 @@ void RLZ::transferSourceEnds(const Source & s){
         // cerr << new_end << endl; 
         new_endInterval.push_back(new_end);
     }
+    sort(new_endInterval.begin(), new_endInterval.end());
     s.end_interval = new_endInterval;
 }
 

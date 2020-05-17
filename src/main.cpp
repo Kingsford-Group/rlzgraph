@@ -142,22 +142,22 @@ int main(int argc, char* argv[]){
             cout << i << endl;
             rlz.RLZFactor(strings[i]);
         }
-        rlz.print_comp_string(0);
+        // rlz.print_comp_string(0);
 
-        vector<long> pointers;
+        // vector<long> pointers;
 
-        for (Phrase * p : rlz.compressed_strings[0]){
-            if (p->start == 45 && p->length == 5){
-                cerr << p << endl;
-                pointers.push_back(long(p));
-            }
-        }
+        // for (Phrase * p : rlz.compressed_strings[0]){
+        //     if (p->start == 45 && p->length == 5){
+        //         cerr << p << endl;
+        //         pointers.push_back(long(p));
+        //     }
+        // }
 
-        for (const Source s : rlz.sources){
-            if (long(s.p) == pointers[0]){
-                s.print();
-            }
-        }
+        // for (const Source s : rlz.sources){
+        //     if (long(s.p) == pointers[0]){
+        //         s.print();
+        //     }
+        // }
 
         rlz.processSources();
 
@@ -167,11 +167,11 @@ int main(int argc, char* argv[]){
         rlz.print_comp_string(0);
 
 
-        for (const Source s : rlz.sources){
-            if (long(s.p) == pointers[0]){
-                s.print();
-            }
-        }
+        // for (const Source s : rlz.sources){
+        //     if (long(s.p) == pointers[0]){
+        //         s.print();
+        //     }
+        // }
 
 
         // if (Output_graph_name!=""){
