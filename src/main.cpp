@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 #include "RLZ.hpp"
-#include "util.hpp"
+// #include "util.cpp"
 
 using namespace std;
 
@@ -15,6 +15,54 @@ string Output_graph_name="";
 string Output_phrase_name="";
 int Strings_to_use = 0;
 int ref_idx=0;
+
+void print_help(){
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("|  USAGE: rlzgraph -r <ref.fa> -i <input.fa> -g <output_graph_name> -p <output_phrase_name> |\n");
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("-i is required. If reference fasta is missing, the first sequence of the input fasta file will be used as reference.\n");
+    printf("Optional Arguments: \n");
+    printf("          -ii <ref idx>         The index of the reference sequence\n");
+    printf("          -n <num seq>          Number of sequences to use\n");
+}
+
+void print_version(){}
+
+vector<string> readFASTA(string filename, int num_seq){
+    fstream input(filename);
+    if (!input.good()) {
+        cerr << "BAD INPUT!: " << filename << endl;
+        exit(1);
+    }
+
+    vector<string> strings;
+    string line, content;
+    int id = 0;
+    while (getline(input, line)){
+        if (num_seq > 0){
+            if (id > num_seq){
+                break;
+            }
+        }
+        if (line[0] == '>' ){
+            if(id != 0){
+                strings.push_back(content);
+                content.clear();
+            }
+            id++;
+        } else if (!line.empty()){
+            if(line.find(' ')!=string::npos){
+                content.clear();
+            } else {
+                content+=line;
+            }
+        }
+    }
+    strings.push_back(content);
+    cout << "Read " << strings.size() << " strings. "<< endl;
+    return strings;
+}
+
 
 bool parse_argument(int argc, char * argv[]){
     bool success=true;
@@ -82,16 +130,49 @@ int main(int argc, char* argv[]){
         cout << "Finished reading files." << endl;
         cout << "Length of reference: " << ref.length() << endl;
 
+        reverse(ref.begin(), ref.end());
+
         RLZ rlz(ref);
         cout << "Built the initial SA" << endl;
+
+        cout << "SA size: "<< rlz.csa.size() << endl;
 
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
             cout << i << endl;
             rlz.RLZFactor(strings[i]);
         }
+        rlz.print_comp_string(0);
+
+        vector<long> pointers;
+
+        for (Phrase * p : rlz.compressed_strings[0]){
+            if (p->start == 45 && p->length == 5){
+                cerr << p << endl;
+                pointers.push_back(long(p));
+            }
+        }
+
+        for (const Source s : rlz.sources){
+            if (long(s.p) == pointers[0]){
+                s.print();
+            }
+        }
+
+        rlz.processSources();
+
 
         cout << "Finished adding sequences." << endl;
+
+        rlz.print_comp_string(0);
+
+
+        for (const Source s : rlz.sources){
+            if (long(s.p) == pointers[0]){
+                s.print();
+            }
+        }
+
 
         // if (Output_graph_name!=""){
         //     cout<<"Writing graph to " << Output_graph_name << endl;
@@ -109,32 +190,26 @@ int main(int argc, char* argv[]){
         printf("Total number of phrases is: %u\n", rlz.numPhrases);
         printf("Total number of unique phrases is: %u\n", rlz.phrases.size());
 
-        // int j = 0;
-        // for (int i=0;i<strings.size();i++){
-        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        int j = 0;
+        for (int i=0;i<strings.size();i++){
+            if (id != 0 && ref_idx == i) continue;    // does not add ref string
 
-        //     cout << i<< endl;
-        //     string test = graph.reconstruct(j);
-            
-        //     cout << "reconstructed from graph" << endl;
+            cout << i<< endl;
+            string test = rlz.decode(j);
+            // cout << test << endl;
+            // cout << strings[i] << endl;
+            cout << "reconstructed from rlz" << endl;
 
-        //     // cout << graph.rlzarr.size() << endl;
-        //     // cout << i-id << endl;
-        //     string test2 = graph.rlzarr[j].reconstruct(graph.ref);
-        //     cout << "reconstructed from phrases" << endl;
-        //     // cout << test.length() << endl;
-        //     // cout << test2.length() << endl;
-        //     // cout << strings[i].length()  << endl;
+            assert(test.compare(strings[i])==0);
+            // cout << "======" << endl;
+            // cout  << test << endl;
+            // cout << strings[i] << endl;
+            // cout << "============" << endl;
+            j++;
+        }
 
-        //     assert(test.compare(strings[i])==0);
-        //     assert(test2.compare(strings[i])==0);
-        //     // cout << "======" << endl;
-        //     // cout  << test << endl;
-        //     // cout << strings[i] << endl;
-        //     // cout << "============" << endl;
-        //     j++;
-        // }
-        // cout << "reconstruct works alright" << endl;
+        cout << "reconstruct works alright" << endl;
+
 
     }
     else {

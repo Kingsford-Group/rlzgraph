@@ -36,6 +36,10 @@ struct Phrase{
     void print() const{
         printf("(%u, %u)", start, length);
     }
+
+    void setStart(int s){
+        start = s;
+    }
 };
 
 /**
@@ -44,7 +48,7 @@ struct Phrase{
  * For endings, there are multiple intervals.
 */
 struct Source{
-    const Phrase * p;
+    Phrase * p;
     mutable pair<int, int> beg_interval;       // stored as one pair of begin and end pair
     mutable vector<int> end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
     int length;
@@ -73,8 +77,9 @@ class PhraseHash {
 public: 
     // id is returned as hash function 
     size_t operator()(const Phrase& p) const
-    { 
-        return p.start * p.length; 
+    {   
+        hash<string> hasher;
+        return hasher(to_string(p.start) + "/" + to_string(p.length)); 
     } 
 }; 
 
@@ -95,10 +100,11 @@ class RLZ{
     public: 
     csa_wt<> csa;       // the compressed suffix array to store the *reversed* reference
     csa_wt<> csa_rev;
-    vector<vector<const Phrase *> > compressed_strings;
-    unordered_set<Phrase, PhraseHash> phrases;
+    vector<vector<Phrase *> > compressed_strings;
+    unordered_map<size_t, Phrase*> phrases;
     unordered_set<Source, SourceHash> sources;
-    unordered_map<char, int> newChar;
+    unordered_map<int, char> newChar;
+    unordered_map<char, int> newChar_rev;
     bool optimized = false;
     int numPhrases = 0;
     int totalLength = 0;
@@ -120,7 +126,7 @@ class RLZ{
      * @param end  -- end iterator of the input string
      * @return Phrase* -- returned source
      */
-    const Phrase* query_bwt(string::iterator & strIt, string::iterator end);
+    Phrase* query_bwt(string::iterator & strIt, string::iterator end);
 
     /**
      * @brief Substitute each phrase with corresponding string.
@@ -153,7 +159,7 @@ class RLZ{
     * @param length 
     * @return Phrase* 
     */
-    const Phrase* create_phrase(int pos, int length);
+    pair<Phrase *, bool> create_phrase(int pos, int length);
 
     /**
      * @brief Search for the occurrence of the given parameter in the given range. Updates the resulting range and (possibly) shrinked range.
@@ -189,5 +195,21 @@ class RLZ{
 
  
 };
+
+/**
+ * @brief Optimize the phrase boundaries that result in the most number of overlaps. Updates the phrase set
+ * 
+ * @param phrases 
+ * @param sources 
+ */
+void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources, int size);
+
+/**
+ * @brief Set "start" of each phrase to the left most boundary of each source
+ * 
+ * @param phrases Holder of the updated phrase set
+ * @param sources Set of sources
+ */
+void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources);
 
 #endif

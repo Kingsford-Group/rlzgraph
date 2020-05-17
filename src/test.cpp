@@ -12,6 +12,10 @@ int main(int argc, const char** argv){
 
     rlz.print_comp_string(0);
 
+    rlz.processSources();
+
+    rlz.print_comp_string(0);
+
     rlz.print_phrases();
     rlz.print_sources();
 

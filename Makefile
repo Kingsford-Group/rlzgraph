@@ -6,13 +6,13 @@ HOME=/home/yutongq
 CC = gcc
 CXX = g++
 # INCLUDES = -g -I $(BAMTOOLS)/include/bamtools -I $(GLPK)/include -I $(BOOST)
-INCLUDES = -g -o0 -I $(HOME)/include
+INCLUDES = -g -O0 -I $(HOME)/include
 CXXFLAGS = -std=c++11 $(INCLUDES)
 LDADD = $(HOME)/lib/libsdsl.a $(HOME)/lib/libdivsufsort.a $(HOME)/lib/libdivsufsort64.a
 # LDADD = $(BAMTOOLS)/lib/libbamtools.a $(GLPK)/lib/libglpk.a
 LDLIBS = $(LDADD)
 
-SRCS=src/RLZ.hpp src/RLZ.cpp src/util.hpp src/main.cpp
+SRCS=src/RLZ.hpp src/RLZ.cpp src/main.cpp
 TESTSRCS=src/RLZ.hpp src/RLZ.cpp src/test.cpp
 all: bin/main 
 
