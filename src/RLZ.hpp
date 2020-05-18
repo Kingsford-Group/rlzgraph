@@ -14,6 +14,7 @@
 #include <sdsl/suffix_arrays.hpp>
 #include <sdsl/csa_alphabet_strategy.hpp>
 #include <string>
+#include <iostream>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -86,9 +87,9 @@ public:
 class SourceHash{
 public: 
     // id is returned as hash function 
-    size_t operator()(const Source& s) const
+    size_t operator()(const Source * s) const
     { 
-        return size_t(s.p);
+        return size_t(s->p);
     } 
 };
 
@@ -102,7 +103,7 @@ class RLZ{
     csa_wt<> csa_rev;
     vector<vector<Phrase *> > compressed_strings;
     unordered_map<size_t, Phrase*> phrases;
-    unordered_set<Source, SourceHash> sources;
+    unordered_set<Source*, SourceHash> sources;
     unordered_map<int, char> newChar;
     unordered_map<char, int> newChar_rev;
     bool optimized = false;
@@ -184,14 +185,14 @@ class RLZ{
      * 
      * @param s source to modify
      */
-    void transferSourceEnds(const Source & s);
+    void transferSourceEnds(Source * s);
 
     /**
      * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
      * 
      * @param s source to modify
      */
-    void transferSourceStarts(const Source & s);
+    void transferSourceStarts(Source * s);
 
  
 };
@@ -202,7 +203,7 @@ class RLZ{
  * @param phrases 
  * @param sources 
  */
-void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources, int size);
+void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, int size);
 
 /**
  * @brief Set "start" of each phrase to the left most boundary of each source
@@ -210,6 +211,6 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
  * @param phrases Holder of the updated phrase set
  * @param sources Set of sources
  */
-void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source, SourceHash> & sources);
+void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources);
 
 #endif

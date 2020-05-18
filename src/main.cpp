@@ -1,7 +1,5 @@
 #include <iostream>
-#include <stdio.h> 
 #include <fstream>
-#include <stdlib.h>
 #include <vector>
 #include <map>
 #include "RLZ.hpp"
