@@ -26,17 +26,14 @@ int RLZ::RLZFactor(string & to_process){
     return string1.size();
 }
 
-void RLZ::processSources(){
-    //TODO Change that to global boolean set from user-given parameter
-    bool optimize = true;
-
+void RLZ::processSources(bool optimize){
     for(auto * s : sources){
         transferSourceStarts(s);
         transferSourceEnds(s);
     }
     
     if (optimize)
-        optimize_phrases(phrases, sources, csa.size()-1);
+        optimize_phrases(phrases, sources, csa.size());
     else
         reset_phrases(phrases, sources);
 }
@@ -44,26 +41,15 @@ void RLZ::processSources(){
 
 void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, int size){
 
-    cerr << "processing" << endl;
+    //cerr << "processing" << endl;
     
     Phrase * oldPointer;
 
     for(auto s : sources){
-        if (s->beg_interval.first == 772 && s->length == 4){
-            oldPointer = s->p;
-            cerr << s << endl;
-            cerr << s->p << endl;
-            cerr << s->p->start << endl;
-            cerr << "(772, 4)---" << endl;
-        }
-
-        if (s->beg_interval.first == 346 && s->length == 3){
-            cerr << s << endl;
-            cerr << s->p << endl;
-            cerr << s->p->start << endl;
-            cerr << "(346, 3)---" << endl;
-        }
+        int ss  = s->p->start;
     }
+
+    //cerr << "All sources looks alright" << endl;
     
     vector<int> bp_count (size);
     vector<vector<Source*> > bp_pointer(size);
@@ -78,18 +64,14 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
             Source * ss = s;
             bp_count[b] += 1;
             bp_pointer[b].push_back(ss);
-            // if (b == 346){
-            //     cerr << bp_pointer[b][bp_pointer[b].size()-1] << endl;
-            //     cerr << bp_pointer[b][bp_pointer[b].size()-1]->p->start << endl;
-            //     cerr << bp_pointer[b][bp_pointer[b].size()-1]->p << endl;
-            //     cerr << "346 ---" << endl;
-            // }
+            // int sss = bp_pointer[b][bp_pointer[b].size() -1]->p->start;
         }
         for (int e : s->end_interval){
             if (e < s->beg_interval.first || e > s->beg_interval.second){
                 Source * ss = s;
                 bp_count[e] +=1;
                 bp_pointer[e].push_back(ss);
+                // int sss = bp_pointer[e][bp_pointer[e].size() -1]->p->start;
             }
         }
     }
@@ -97,12 +79,8 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
     // int j = 0;
     // for (auto v : bp_pointer){
     //     for(auto s : v){
-    //         if (s->beg_interval.first == 346 && s->length == 3){
-    //             cerr << s << endl;
-    //             cerr << s->p << endl;
-    //             cerr << s->p->start << endl;
-    //             cerr << "---" << j << "---" << endl;
-    //         }
+    //         cerr << j << endl;
+    //         int ss = s->p->start;
     //     }
     //     j++;
     // }
@@ -110,7 +88,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
     vector<int> bp_count_copy = bp_count;
 
     // iteratively find all sources
-    while(new_phrases.size() < phrases.size()){
+    while(new_phrases.size() < sources.size()){
         auto max = max_element(bp_count.begin(), bp_count.end());
         int argmax = distance(bp_count.begin(), max);
 
@@ -120,19 +98,15 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         // cerr << argmax << "=== " << endl;
         // for (auto v : bp_pointer){
         //     for(auto s : v){
-        //         if (s->beg_interval.first == 346 && s->length == 3){
-        //             cerr << "Source pointer: " << s << endl;
-        //             cerr << "Phrase pointer: " << s->p << endl;
-        //             cerr << s->p->start << endl;
-        //             cerr << "---" << k << "---" << endl;
-        //         }
+        //         cerr << k << endl;
+        //         int ss = s->p->start;
         //     }
         //     k++;
         // }
-        
-        cerr << "Original Count: " << bp_count_copy[argmax] << endl;
-        cerr << "Before Count: " << bp_count[argmax] << endl;
-
+        // if (argmax == 0){
+        //     cerr << "Original Count: " << bp_count_copy[argmax] << endl;
+        //     cerr << "Before Count: " << bp_count[argmax] << endl;
+        // }
         // reset start for all phrases at argmax
         for(Source * s : bp_pointer[argmax]){
 
@@ -154,12 +128,15 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                 int end_pos = 0;
                 int start_pos = 0;
 
+                int deleted = 0;
+
                 // if bp hits a beginning.
                 if (argmax >= s->beg_interval.first && argmax <= s->beg_interval.second){
-                    cerr << "begin" << endl;
+                    // cerr << "begin" << endl;
                     for(int b = s->beg_interval.first; b <= s->beg_interval.second; b++){
                         // cerr << b << endl;
                         bp_count[b] -= 1;
+                        deleted+=1;
                     }
                     start_pos = argmax;
                     rank = argmax - s->beg_interval.first;
@@ -167,21 +144,29 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
 
                     // remove the other ends of other sources
                     for(int i = 0; i < s->end_interval.size(); i++){
-                        if (i!=rank && (s->end_interval[i] < s->beg_interval.first || s->end_interval[i] > s->beg_interval.second)){
-                            // cerr << s->end_interval[i] << endl;
-                            bp_count[s->end_interval[i]] -= 1;
+                        int e = s->end_interval[i];
+                        if (e < s->beg_interval.first || e > s->beg_interval.second){
+                            if (e != end_pos){ 
+                                // cerr << s->end_interval[i] << endl;
+                                bp_count[e] -= 1;
+                                deleted+=1;
+                            } 
+                        }else if (e == end_pos){
+                            bp_count[e] +=1;
+                            deleted-=1;
                         }
                     }
                 } 
                 // it bp hits an end.
                 else {
-                    cerr << "end" << endl;
+                    // cerr << "end" << endl;
                     end_pos = argmax;
                     for(int i = 0; i < s->end_interval.size(); i++){
                         int e = s->end_interval[i];
                         if (e < s->beg_interval.first || e > s->beg_interval.second){
                             // cerr << e << endl;
                             bp_count[e] -= 1;
+                            deleted+=1;
                         }
                         if (e == argmax){
                             rank = i;
@@ -190,11 +175,20 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                     start_pos = s->beg_interval.first + rank;
 
                     // remove the other ends of other sources
-                    for(int i =s->beg_interval.first ; i<=s->beg_interval.second; i++){
-                        if (i != start_pos){
+                    for(int b =s->beg_interval.first ; b<=s->beg_interval.second; b++){
+                        if (b != start_pos){
                             // cerr << i << endl;
-                            bp_count[i] -= 1;
+                            bp_count[b] -= 1;
+                            deleted+=1;
                         }
+                    }
+                }
+                
+                int total_num = 0;
+                total_num += s->beg_interval.second + 1 - s->beg_interval.first;
+                for(int e : s->end_interval){
+                    if (e < s->beg_interval.first || e > s->beg_interval.second){
+                        total_num+=1;
                     }
                 }
 
@@ -202,19 +196,33 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                 new_phrases[hasher(*(s->p))] = s->p;
                 phrase_mark.insert(s);
 
-                s->print();
+                // s->print();
+                // cerr << endl;
                 int r = start_pos - s->beg_interval.first;
                 assert(s->end_interval[r] == argmax || start_pos == argmax);
-
+                
+                // if (argmax == 0){
+                //     cerr << deleted<< " vs " << total_num-1 << endl;
+                //     cerr << "=====================" << endl;
+                //     assert(deleted == total_num-1);
+                // }
 
                 // cerr << start_pos << ", " << end_pos << endl;
             } else {
-                cerr << "already in " << argmax << endl;
                 int r = s->p->start - s->beg_interval.first;
-                s->print();
-                cerr << endl;
                 if(s->end_interval[r] == argmax || s->p->start == argmax){
+                    // if (argmax == 0){
+                    //     cerr << "already in " << argmax << endl;
+                    //     s->print();
+                    //     cerr << endl;
+                    // }
                     bp_count[argmax] -= 1;
+                }else {
+                    // if (argmax == 0){
+                    //     cerr << "deleted " << endl;
+                    //     s->print();
+                    //     cerr << endl;
+                    // }
                 }
             }
         }
@@ -233,40 +241,43 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         //     m++;
         // }
         
-
-        cerr << "Count: " << bp_count[argmax] << ", "<< bp_pointer[argmax].size() << endl;
-        cerr << "--------" << endl;
+        // if (argmax == 0){
+        //     cerr << "Count: " << bp_count[argmax] << ", "<< bp_pointer[argmax].size() << endl;
+        //     cerr << "--------" << endl;
+        // }
         assert(bp_count[argmax] == 0);
     }
 
     phrases = new_phrases;
-    cerr << "done processing" << endl;
+    // cerr << "done processing" << endl;
 }
 
-void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources){
+void reset_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources){
     PhraseHash hasher;
     unordered_map<size_t, Phrase*> new_phrases;
     for(auto * s : sources){
-        int oldpos = s->p->start;
-        int oldlength = s->p->length;
-        size_t oldpointer = size_t(s->p);
-
         Phrase * p = s->p;
-
-        auto got = phrases.find(hasher(*p));
-
         p->setStart(s->beg_interval.first);
         auto new_got = new_phrases.find(hasher(*p));
-        // if(new_got != phrases.end()){
-        //     cerr << "???? Collision ????" << endl;
-        //     cerr << &(new_got->second) <<": ";
-        //     new_got->second.print();
-        //     cerr << endl;
-        //     cerr << p <<": ";
-        //     s.p->print();
-        //     cerr << endl;
-        //     // assert(1==0);
-        // }
+        new_phrases[hasher(*p)] = p;
+    }
+    phrases = new_phrases;
+}
+
+void set_phrases_leftmost(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, csa_wt<> & csa){
+    PhraseHash hasher;
+    unordered_map<size_t, Phrase*> new_phrases;
+    for(auto * s : sources){
+        Phrase * p = s->p;
+        int min = RAND_MAX;
+        for(int b = s->beg_interval.first ; b <= s->beg_interval.second; b++){
+            int actual = csa[b];
+            if (actual <= min){
+                min = actual;
+            }
+        }
+        p->setStart(min);
+        auto new_got = new_phrases.find(hasher(*p));
         new_phrases[hasher(*p)] = p;
     }
     phrases = new_phrases;
@@ -286,7 +297,7 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         auto find = newChar_rev.find(*strIt);
         int idx = 0;
         if (find == newChar_rev.end()){
-            cerr << "not in alphabet: " << (*strIt) <<  endl;
+            //cerr << "not in alphabet: " << (*strIt) <<  endl;
             newChar_rev[*strIt] = totalLength;
             newChar[totalLength] = *strIt;
             totalLength+=1;
@@ -418,7 +429,7 @@ string RLZ::decode(int stringID){
     for(Phrase * p : compressed_strings[stringID]){
         if (p->start > csa.size() - 1 ){
             assert(p->length == 1);
-            p->print();
+            // p->print();
             toReturn += newChar[p->start];
         }
         else {

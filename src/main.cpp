@@ -157,12 +157,12 @@ int main(int argc, char* argv[]){
         //     }
         // }
 
-        rlz.processSources();
+        rlz.processSources(true);
 
 
         cout << "Finished adding sequences." << endl;
 
-        rlz.print_comp_string(0);
+        // rlz.print_comp_string(0);
 
 
         // for (const Source s : rlz.sources){
@@ -188,25 +188,53 @@ int main(int argc, char* argv[]){
         printf("Total number of phrases is: %u\n", rlz.numPhrases);
         printf("Total number of unique phrases is: %u\n", rlz.phrases.size());
 
-        int j = 0;
-        for (int i=0;i<strings.size();i++){
-            if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        // int j = 0;
+        // for (int i=0;i<strings.size();i++){
+        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
 
-            cout << i<< endl;
-            string test = rlz.decode(j);
-            // cout << test << endl;
-            // cout << strings[i] << endl;
-            cout << "reconstructed from rlz" << endl;
+        //     cout << i<< endl;
+        //     string test = rlz.decode(j);
+        //     // cout << test << endl;
+        //     // cout << strings[i] << endl;
+        //     cout << "reconstructed from rlz" << endl;
 
-            assert(test.compare(strings[i])==0);
-            // cout << "======" << endl;
-            // cout  << test << endl;
-            // cout << strings[i] << endl;
-            // cout << "============" << endl;
-            j++;
+        //     assert(test.compare(strings[i])==0);
+        //     // cout << "======" << endl;
+        //     // cout  << test << endl;
+        //     // cout << strings[i] << endl;
+        //     // cout << "============" << endl;
+        //     j++;
+        // }
+
+        // cout << "reconstruct works alright" << endl;
+        
+        unordered_set<int> positions;
+        for(auto pair : rlz.phrases){
+            positions.insert(rlz.csa_rev[pair.second->start]);
+            positions.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
         }
+        // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
+        cerr << positions.size() << "," ;
 
-        cout << "reconstruct works alright" << endl;
+        reset_phrases(rlz.phrases, rlz.sources);
+
+        unordered_set<int> positions2;
+        for(auto pair : rlz.phrases){
+            positions2.insert(rlz.csa_rev[pair.second->start]);
+            positions2.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
+        }
+        // cerr << "Number of unique positions (without opt): " << positions2.size() << endl;
+        cerr << positions2.size() << "," ;
+
+        set_phrases_leftmost(rlz.phrases, rlz.sources, rlz.csa_rev);
+
+        unordered_set<int> positions3;
+        for(auto pair : rlz.phrases){
+            positions3.insert(rlz.csa_rev[pair.second->start]);
+            positions3.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
+        }
+        // cerr << "Number of unique positions (leftmost): " << positions2.size() << endl;
+        cerr << positions3.size() << endl;
 
 
     }

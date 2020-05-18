@@ -178,7 +178,7 @@ class RLZ{
      * @brief Go through all phrases (unqiue) and find the begin intervals of their sources
      * Query each phrase on the reversed reversed BWT. (backward search)
      */
-    void processSources();
+    void processSources(bool optimize);
     
     /**
      * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
@@ -213,4 +213,12 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
  */
 void reset_phrases( unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources);
 
+/**
+ * @brief Set the phrase position to the left most position in the original reference
+ * 
+ * @param phrases 
+ * @param sources 
+ * @param csa 
+ */
+void set_phrases_leftmost(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, csa_wt<> & csa);
 #endif
