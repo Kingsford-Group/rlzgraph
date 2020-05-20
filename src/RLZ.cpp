@@ -27,10 +27,11 @@ int RLZ::RLZFactor(string & to_process){
 }
 
 void RLZ::processSources(bool optimize){
-    for(auto * s : sources){
-        transferSourceStarts(s);
-        transferSourceEnds(s);
-    }
+    cout << "Total number of sources: " << sources.size() << endl;
+    // for(auto * s : sources){
+    //     transferSourceStarts(s);
+    //     transferSourceEnds(s);
+    // }
     
     if (optimize)
         optimize_phrases(phrases, sources, csa.size());
@@ -41,85 +42,44 @@ void RLZ::processSources(bool optimize){
 
 void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, int size){
 
-    //cerr << "processing" << endl;
-    
     Phrase * oldPointer;
-
-    for(auto s : sources){
-        int ss  = s->p->start;
-    }
-
-    //cerr << "All sources looks alright" << endl;
     
     vector<int> bp_count (size);
+    // multimap<int, int> bp_count_sorted;
     vector<vector<Source*> > bp_pointer(size);
-    // vector<bool> bp_mark(size);
 
     unordered_set<Source*> phrase_mark;
     unordered_map<size_t, Phrase*> new_phrases;
 
     // mark the break points
-    for(auto s : sources){
-        for(int b = s->beg_interval.first; b <= s->beg_interval.second; b++){
-            Source * ss = s;
+    for(auto sourceIt = sources.begin(); sourceIt != sources.end(); sourceIt ++){
+        for(int b = (*sourceIt)->beg_interval.first; b <= (*sourceIt)->beg_interval.second; b++){
+            Source * ss = *sourceIt;
             bp_count[b] += 1;
             bp_pointer[b].push_back(ss);
-            // int sss = bp_pointer[b][bp_pointer[b].size() -1]->p->start;
         }
-        for (int e : s->end_interval){
-            if (e < s->beg_interval.first || e > s->beg_interval.second){
-                Source * ss = s;
+        for (int e : (*sourceIt)->end_interval){
+            if (e < (*sourceIt)->beg_interval.first || e > (*sourceIt)->beg_interval.second){
+                Source * ss = *sourceIt;
                 bp_count[e] +=1;
                 bp_pointer[e].push_back(ss);
-                // int sss = bp_pointer[e][bp_pointer[e].size() -1]->p->start;
             }
         }
     }
 
-    // int j = 0;
-    // for (auto v : bp_pointer){
-    //     for(auto s : v){
-    //         cerr << j << endl;
-    //         int ss = s->p->start;
-    //     }
-    //     j++;
-    // }
-
+    cerr << "Here" << endl;
     vector<int> bp_count_copy = bp_count;
 
     // iteratively find all sources
-    while(new_phrases.size() < sources.size()){
-        auto max = max_element(bp_count.begin(), bp_count.end());
-        int argmax = distance(bp_count.begin(), max);
+    auto max = max_element(bp_count.begin(), bp_count.end());
+    int argmax = distance(bp_count.begin(), max);
+    
+    PhraseHash hasher;
 
-        PhraseHash hasher;
-
-        // int k = 0;
-        // cerr << argmax << "=== " << endl;
-        // for (auto v : bp_pointer){
-        //     for(auto s : v){
-        //         cerr << k << endl;
-        //         int ss = s->p->start;
-        //     }
-        //     k++;
-        // }
-        // if (argmax == 0){
-        //     cerr << "Original Count: " << bp_count_copy[argmax] << endl;
-        //     cerr << "Before Count: " << bp_count[argmax] << endl;
-        // }
+    do{ 
         // reset start for all phrases at argmax
-        for(Source * s : bp_pointer[argmax]){
-
-            // cerr << s->beg_interval.first << ", " << s->length << endl;
-            // cerr << "Source pointer: " << s << endl;
-            // cerr << "Phrase pointer: " << s->p << endl;
-            // s->print();
-            // if (s->beg_interval.first == 772 && s->length == 4){
-            //     cerr << s << endl;
-            //     cerr << s->p << endl;
-            //     cerr << s->p->start << endl;
-            // }
-
+        for(int it = 0; it < bp_pointer[argmax].size(); it ++){
+            Source * s = bp_pointer[argmax][it];
             auto ret = phrase_mark.find(s);
             if (ret == phrase_mark.end()){
                 //TODO a bp could be a beginning or an ending of the same phrase. Maybe need a better way to distinguish them. For now it does not seem to affect the approximation ratio.
@@ -147,7 +107,6 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                         int e = s->end_interval[i];
                         if (e < s->beg_interval.first || e > s->beg_interval.second){
                             if (e != end_pos){ 
-                                // cerr << s->end_interval[i] << endl;
                                 bp_count[e] -= 1;
                                 deleted+=1;
                             } 
@@ -159,12 +118,10 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                 } 
                 // it bp hits an end.
                 else {
-                    // cerr << "end" << endl;
                     end_pos = argmax;
                     for(int i = 0; i < s->end_interval.size(); i++){
                         int e = s->end_interval[i];
                         if (e < s->beg_interval.first || e > s->beg_interval.second){
-                            // cerr << e << endl;
                             bp_count[e] -= 1;
                             deleted+=1;
                         }
@@ -177,7 +134,6 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                     // remove the other ends of other sources
                     for(int b =s->beg_interval.first ; b<=s->beg_interval.second; b++){
                         if (b != start_pos){
-                            // cerr << i << endl;
                             bp_count[b] -= 1;
                             deleted+=1;
                         }
@@ -196,60 +152,36 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
                 new_phrases[hasher(*(s->p))] = s->p;
                 phrase_mark.insert(s);
 
-                // s->print();
-                // cerr << endl;
                 int r = start_pos - s->beg_interval.first;
                 assert(s->end_interval[r] == argmax || start_pos == argmax);
-                
-                // if (argmax == 0){
-                //     cerr << deleted<< " vs " << total_num-1 << endl;
-                //     cerr << "=====================" << endl;
-                //     assert(deleted == total_num-1);
-                // }
-
-                // cerr << start_pos << ", " << end_pos << endl;
             } else {
                 int r = s->p->start - s->beg_interval.first;
                 if(s->end_interval[r] == argmax || s->p->start == argmax){
-                    // if (argmax == 0){
-                    //     cerr << "already in " << argmax << endl;
-                    //     s->print();
-                    //     cerr << endl;
-                    // }
                     bp_count[argmax] -= 1;
-                }else {
-                    // if (argmax == 0){
-                    //     cerr << "deleted " << endl;
-                    //     s->print();
-                    //     cerr << endl;
-                    // }
                 }
             }
-        }
-
-        // int m = 0;
-        // cerr << argmax << "=== after" << endl;
-        // for (auto v : bp_pointer){
-        //     for(auto s : v){
-        //         if (s->beg_interval.first == 772 && s->length == 4){
-        //             cerr << s << endl;
-        //             cerr << s->p << endl;
-        //             cerr << s->p->start << endl;
-        //             cerr << "---" << m << "---" << endl;
-        //         }
-        //     }
-        //     m++;
-        // }
-        
-        // if (argmax == 0){
-        //     cerr << "Count: " << bp_count[argmax] << ", "<< bp_pointer[argmax].size() << endl;
-        //     cerr << "--------" << endl;
-        // }
+        } 
         assert(bp_count[argmax] == 0);
+
+        max = max_element(bp_count.begin(), bp_count.end());
+        argmax = distance(bp_count.begin(), max);
+    }while(*max > 1);
+
+    cerr << "Here" << endl;
+
+    while (new_phrases.size() < sources.size()){
+        for (auto * s : sources){
+            auto ret = phrase_mark.find(s);
+            if (ret == phrase_mark.end()){
+                s->p->setStart(s->beg_interval.first);
+                new_phrases[hasher(*(s->p))] =s->p;
+            }
+        }
     }
 
+    cerr << "done" << endl;
+
     phrases = new_phrases;
-    // cerr << "done processing" << endl;
 }
 
 void reset_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources){
@@ -286,6 +218,7 @@ void set_phrases_leftmost(unordered_map<size_t, Phrase*> & phrases, unordered_se
 
 Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     // check if the first character is in the alphabet
+    string::iterator strStart = strIt;
     bool inAlphabet = false;
     for(int i=1; i<csa.sigma; i++){
         if (csa.comp2char[i] == *strIt){
@@ -297,7 +230,6 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         auto find = newChar_rev.find(*strIt);
         int idx = 0;
         if (find == newChar_rev.end()){
-            //cerr << "not in alphabet: " << (*strIt) <<  endl;
             newChar_rev[*strIt] = totalLength;
             newChar[totalLength] = *strIt;
             totalLength+=1;
@@ -313,14 +245,11 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     size_type r = csa.size()-1;
     int l_res = 0;
     int r_res = r;
-    // int beg_s = 0;
-    // int beg_e = r;
     int length = 1;
     while(strIt != end && r+1-l > 0){
         l_res = l;
         r_res = r;
 
-        // backward_search_rank(l, r, (*strIt), beg_s, beg_e);
         backward_search(csa, l, r, (*strIt), l, r);
         
         strIt ++;
@@ -336,8 +265,15 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         r_res = r;
     }
 
-    // start interval is (l_res, r_res)
-    pair<int, int> beg_interval = make_pair(l_res, r_res);
+    // Find the start intervals in csa_rev
+    size_type l_start = 0;
+    size_type r_start = csa_rev.size() -1 ;
+    string::iterator strEnd = strIt;
+    do{
+        strEnd -- ;
+        backward_search(csa_rev, l_start, r_start, (*strEnd), l_start, r_start);
+    }while(strEnd != strStart);
+    pair<int, int> beg_interval = make_pair(l_start, r_start);
 
     auto ret_cp= create_phrase(l_res, length-1);
     Phrase * p = ret_cp.first;
@@ -349,23 +285,19 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         for (int i=0; i < csa.sigma;i++){
             size_type new_l = 0;
             size_type new_r = 0;
-            // fflush(stdout);
-            // cerr <<  l_res << "," << r_res << endl;
+
             backward_search(csa, l_res, r_res, csa.comp2char[i], new_l, new_r);
-            // int cc = csa.C[i];
-            // int l_rank = csa.bwt.rank(l, csa.comp2char[i]);
-            // int r_rank = csa.bwt.rank(r+1, csa.comp2char[i]);
-            // cerr << new_l << "," << new_r << "," << (new_l <= new_r) << endl;
+
             if (int(new_l) <= int(new_r)){
-                // cerr << "if " << new_l << "," << new_r << "," << (new_l <= new_r) << endl;
                 for(int i = new_l; i <= new_r; i++){
-                    end_interval.push_back(i);
+                    int e = csa_rev.isa[csa[i]];
+                    end_interval.push_back(e);
                 }
             }
         }
 
         sort(end_interval.begin(), end_interval.end());
-
+        assert((beg_interval.second - beg_interval.first+1) == end_interval.size());
         Source * source = new Source {p, beg_interval, end_interval, length-1};
         auto ret = sources.insert(source);
 
@@ -392,14 +324,6 @@ pair<Phrase *, bool> RLZ::create_phrase(int pos, int length){
 
     PhraseHash hasher;
     auto ret = phrases.find(hasher(*phrase));
-
-    // if (pos == 20 && length == 6 && phrases.size() > 270){
-    //     
-    //     cerr << a << endl;
-    //     cerr << "true" << endl;
-    //     auto ret1 = phrases.find(a);
-    //     cerr << ret->second.start << endl;
-    // }
 
     if (ret == phrases.end()){
 

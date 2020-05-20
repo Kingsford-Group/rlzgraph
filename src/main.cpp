@@ -106,6 +106,39 @@ bool parse_argument(int argc, char * argv[]){
     return success;
 }
 
+char revCompHelper(char c){
+    switch (c){
+        case 'A': return 'T';
+        case 'C':return 'G';
+        case 'G': return 'C';
+        case 'T': return 'A';
+        case 'N': return 'W';
+        case 'M': return 'A';
+        case 'Y': return 'B';
+        case 'S': return 'D';
+        case 'R': return 'H';
+        case 'K': return 'V';
+        case 'B': return 'M';
+        case 'D': return 'Y';
+        case 'H': return 'S';
+        case 'V': return 'R';
+        case 'U': return 'K';
+        case 'W': return 'N';
+        case '$': return 16;
+    }
+    cerr << "Unrecognized Character (revComp): " << c << endl;
+    exit(1);
+}
+
+string reverseComp(string toreverse){
+    string s ="";
+    for (int i=0;i<toreverse.length();i++){
+        s+=revCompHelper(toreverse[i]);
+    }
+    reverse(s.begin(), s.end());
+    return s;
+}
+
 int main(int argc, char* argv[]){
 
     bool success = parse_argument(argc, argv);
@@ -124,6 +157,8 @@ int main(int argc, char* argv[]){
             ref = strings[ref_idx];
             id = 1;
         }
+        
+        ref = ref + "#" + reverseComp(ref);
 
         cout << "Finished reading files." << endl;
         cout << "Length of reference: " << ref.length() << endl;
@@ -137,8 +172,8 @@ int main(int argc, char* argv[]){
 
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
-            cout << i << endl;
             rlz.RLZFactor(strings[i]);
+            cout << "Done for " << i << endl;
         }
         // rlz.print_comp_string(0);
 
@@ -188,25 +223,25 @@ int main(int argc, char* argv[]){
         printf("Total number of phrases is: %u\n", rlz.numPhrases);
         printf("Total number of unique phrases is: %u\n", rlz.phrases.size());
 
-        // int j = 0;
-        // for (int i=0;i<strings.size();i++){
-        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        int j = 0;
+        for (int i=0;i<strings.size();i++){
+            if (id != 0 && ref_idx == i) continue;    // does not add ref string
 
-        //     cout << i<< endl;
-        //     string test = rlz.decode(j);
-        //     // cout << test << endl;
-        //     // cout << strings[i] << endl;
-        //     cout << "reconstructed from rlz" << endl;
+            // cout << i<< endl;
+            string test = rlz.decode(j);
+            // cout << test << endl;
+            // cout << strings[i] << endl;
+            // cout << "reconstructed from rlz" << endl;
 
-        //     assert(test.compare(strings[i])==0);
-        //     // cout << "======" << endl;
-        //     // cout  << test << endl;
-        //     // cout << strings[i] << endl;
-        //     // cout << "============" << endl;
-        //     j++;
-        // }
+            assert(test.compare(strings[i])==0);
+            // cout << "======" << endl;
+            // cout  << test << endl;
+            // cout << strings[i] << endl;
+            // cout << "============" << endl;
+            j++;
+        }
 
-        // cout << "reconstruct works alright" << endl;
+        cout << "reconstruct works alright" << endl;
         
         unordered_set<int> positions;
         for(auto pair : rlz.phrases){
