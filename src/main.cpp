@@ -173,7 +173,7 @@ int main(int argc, char* argv[]){
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
             rlz.RLZFactor(strings[i]);
-            cout << "Done for " << i << endl;
+            // cout << "Done for " << i << endl;
         }
         // rlz.print_comp_string(0);
 
@@ -233,6 +233,11 @@ int main(int argc, char* argv[]){
             j++;
         }
 
+        string prefix_fname;
+        prefix_fname = "sources_" + to_string(Strings_to_use) + "_" + to_string(ref_idx);
+        string opt_fname = prefix_fname + "_opt.txt";
+
+        rlz.write_sources(opt_fname);
         cout << "reconstruct works alright for optimized" << endl;
         
         unordered_set<int> positions;
@@ -258,6 +263,8 @@ int main(int argc, char* argv[]){
             j++;
         }
 
+        string default_fname = prefix_fname + "_default.txt";
+        rlz.write_sources(default_fname);
         cout << "reconstruct works alright for default" << endl;
 
         unordered_set<int> positions2;
@@ -282,6 +289,9 @@ int main(int argc, char* argv[]){
             assert(test.compare(strings[i])==0);
             j++;
         }
+
+        string leftmost_fname = prefix_fname + "_leftmost.txt";
+        rlz.write_sources(leftmost_fname);
 
         cout << "reconstruct works alright for leftmost" << endl;
 

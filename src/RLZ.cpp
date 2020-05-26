@@ -321,7 +321,7 @@ void RLZ::print_comp_string(int stringID){
     cout << "Printing compressed strings" << endl;
     int length = 0;
     for( const Phrase* p : compressed_strings[stringID]){
-        p->print();
+        p->print(cout);
         cout << ",";
         length += p->length;
     }
@@ -346,14 +346,14 @@ pair<Phrase *, bool> RLZ::create_phrase(int pos, int length){
 void RLZ::print_sources(){
     cout << "Printing sources." << endl;
     for(auto s: sources){
-        s->print();
+        s->print(cout, true);
     }
 }
 
 void RLZ::print_phrases(){
     cout << "Printing phrases." << endl;
     for(auto p : phrases){
-        p.second->print();
+        p.second->print(cout);
     }
     cout << endl;
 }
@@ -413,4 +413,23 @@ void RLZ::transferSourceStarts(Source * s){
     reverse(sub.begin(), sub.end());
     backward_search(csa_rev, l, r, sub.begin(), sub.end(), l, r );   // search for the pattern in the reversed reversed BWT.
     s->beg_interval = make_pair(l,r);
+}
+
+void RLZ::write_phrases(string & fname){
+    ofstream out (fname);
+    
+    auto it = sources.begin();
+    for(;it!=sources.end(); it++){
+        (*it)->p->print(out);
+    }
+    out << endl;
+}
+
+void RLZ::write_sources(string & fname){
+    ofstream out (fname);
+
+    auto it = sources.begin();
+    for(;it!=sources.end(); it++){
+        (*it)->print(out, true);
+    }
 }

@@ -34,8 +34,8 @@ struct Phrase{
         return (this->start == p.start && this->length == p.length);
     }
 
-    void print() const{
-        printf("(%u, %u)", start, length);
+    void print(ostream & out) const{
+        out << "(" << start << "," << length << ")";
     }
 
     void setStart(int s){
@@ -58,15 +58,17 @@ struct Source{
         return (*(this->p) == *(s.p));
     }
 
-    void print() const{
-        p->print();
-        cout << endl;
-        cout << "Begin: " << beg_interval.first <<", " << beg_interval.second<< endl;
-        cout << "End: ";
-        for(int i=0; i<end_interval.size(); i++){
-            cout << end_interval[i] << "; ";
+    void print(ostream & out, bool phrase) const{
+        if (phrase){
+            p->print(out);
+            out << endl;
         }
-        cout << endl;
+        out << "Begin: " << beg_interval.first <<"," << beg_interval.second<< endl;
+        out << "End: ";
+        for(int i=0; i<end_interval.size(); i++){
+            out << end_interval[i] << ",";
+        }
+        out << endl;
     }
 };
 
@@ -201,6 +203,22 @@ class RLZ{
      * @param s source to modify
      */
     void transferSourceStarts(Source * s);
+
+
+    /**
+     * @brief Write sources to file
+     * 
+     * @param fname 
+     */
+    void write_sources(string & fname);
+
+    
+    /**
+     * @brief Iterate over all sources and output its corresponding phrase
+     * 
+     * @param fname 
+     */
+    void write_phrases(string & fname);
 
  
 };

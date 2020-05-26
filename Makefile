@@ -14,9 +14,12 @@ LDLIBS = $(LDADD)
 
 SRCS=src/RLZ.hpp src/RLZ.cpp src/main.cpp
 TESTSRCS=src/RLZ.hpp src/RLZ.cpp src/test.cpp
+printSASRC=helpers/printSA.cpp
 all: bin/main 
 
 test: bin/test
+
+printSA: bin/printSA
 
 bin/main: $(subst .cpp,.o,$(SRCS))
 	mkdir -p bin
@@ -27,6 +30,10 @@ bin/main: $(subst .cpp,.o,$(SRCS))
 # 	$(CXX) -o $@ $^ $(LDLIBS)
 
 bin/test: $(subst .cpp,.o,$(TESTSRCS))
+	mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+
+bin/printSA: $(subst .cpp,.o,$(printSASRC))
 	mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
