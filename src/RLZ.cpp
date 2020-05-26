@@ -1,5 +1,11 @@
 #include "RLZ.hpp"
 
+#include <ctime>
+#include <ratio>
+#include <chrono>
+
+using namespace std::chrono;
+
 /* Construct a suffix array using the provided reference*/
 RLZ::RLZ(string ref){
     string revRef;
@@ -16,7 +22,11 @@ int RLZ::RLZFactor(string & to_process){
     vector<Phrase*> string1;
     auto strIt = to_process.begin();
     while (strIt != to_process.end()){
+        auto start = high_resolution_clock::now();
         Phrase * p = query_bwt(strIt, to_process.end());
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
+        // cout << duration.count()<< "," << p->length << endl;
         string1.push_back(p);
     }
 
@@ -67,7 +77,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         }
     }
 
-    cerr << "Here" << endl;
+    // cerr << "Here" << endl;
     vector<int> bp_count_copy = bp_count;
 
     // iteratively find all sources
@@ -167,7 +177,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         argmax = distance(bp_count.begin(), max);
     }while(*max > 1);
 
-    cerr << "Here" << endl;
+    // cerr << "Here" << endl;
 
     while (new_phrases.size() < sources.size()){
         for (auto * s : sources){
@@ -179,7 +189,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         }
     }
 
-    cerr << "done" << endl;
+    // cerr << "done" << endl;
 
     phrases = new_phrases;
 }
@@ -275,7 +285,7 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     }while(strEnd != strStart);
     pair<int, int> beg_interval = make_pair(l_start, r_start);
 
-    auto ret_cp= create_phrase(l_res, length-1);
+    auto ret_cp= create_phrase(l_start, length-1);
     Phrase * p = ret_cp.first;
 
     // this is a newly inserted phrase
@@ -358,6 +368,21 @@ string RLZ::decode(int stringID){
         }
         else {
             toReturn += extract(csa_rev, csa_rev[p->start], csa_rev[p->start]+p->length-1);
+        }
+    }
+    return toReturn;
+}
+
+string RLZ::decode_refCoord(int stringID){
+    string toReturn;
+    for(Phrase * p : compressed_strings[stringID]){
+        if (p->start > csa.size() - 1 ){
+            assert(p->length == 1);
+            // p->print();
+            toReturn += newChar[p->start];
+        }
+        else {
+            toReturn += extract(csa_rev, p->start, p->start+p->length-1);
         }
     }
     return toReturn;

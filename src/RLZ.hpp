@@ -130,12 +130,20 @@ class RLZ{
     Phrase* query_bwt(string::iterator & strIt, string::iterator end);
 
     /**
-     * @brief Substitute each phrase with corresponding string.
+     * @brief Substitute each phrase with corresponding substring
      * 
      * @param stringID 
      * @return string 
      */
     string decode(int stringID);
+
+    /**
+     * @brief Substitute each phrase with corresponding substring (phrase already in reference coordinate)
+     * 
+     * @param stringID 
+     * @return string 
+     */
+    string decode_refCoord(int stringID);
 
 
     /**
