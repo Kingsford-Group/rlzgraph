@@ -44,19 +44,19 @@ void RLZ::processSources(bool optimize){
     // }
     
     if (optimize)
-        optimize_phrases(phrases, sources, csa.size());
+        optimize_phrases();
     else
-        reset_phrases(phrases, sources);
+        reset_phrases();
 }
 
 
-void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, int size){
+void RLZ::optimize_phrases(){
 
     Phrase * oldPointer;
     
-    vector<int> bp_count (size);
+    vector<int> bp_count (csa_rev.size());
     // multimap<int, int> bp_count_sorted;
-    vector<vector<Source*> > bp_pointer(size);
+    vector<vector<Source*> > bp_pointer(csa_rev.size());
 
     unordered_set<Source*> phrase_mark;
     unordered_map<size_t, Phrase*> new_phrases;
@@ -91,6 +91,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
         for(int it = 0; it < bp_pointer[argmax].size(); it ++){
             Source * s = bp_pointer[argmax][it];
             auto ret = phrase_mark.find(s);
+            
             if (ret == phrase_mark.end()){
                 //TODO a bp could be a beginning or an ending of the same phrase. Maybe need a better way to distinguish them. For now it does not seem to affect the approximation ratio.
                 // rank of argmax in this source's end.
@@ -194,7 +195,7 @@ void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<So
     phrases = new_phrases;
 }
 
-void reset_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources){
+void RLZ::reset_phrases(){
     PhraseHash hasher;
     unordered_map<size_t, Phrase*> new_phrases;
     for(auto * s : sources){
@@ -206,14 +207,14 @@ void reset_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Sourc
     phrases = new_phrases;
 }
 
-void set_phrases_leftmost(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, csa_wt<> & csa){
+void RLZ::set_phrases_leftmost(){
     PhraseHash hasher;
     unordered_map<size_t, Phrase*> new_phrases;
     for(auto * s : sources){
         Phrase * p = s->p;
         int min = RAND_MAX;
         for(int b = s->beg_interval.first ; b <= s->beg_interval.second; b++){
-            int actual = csa[b];
+            int actual = csa_rev[b];
             if (actual <= min){
                 min = actual;
             }
@@ -261,7 +262,7 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         r_res = r;
 
         backward_search(csa, l, r, (*strIt), l, r);
-        
+
         strIt ++;
         length ++; 
     }
@@ -269,23 +270,32 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     // whether the last character is found or the last character is the end of the string
     if (r < l){
         strIt --;
-        length --;
+        length -= 2;
     } else{
         l_res = l;
         r_res = r;
+        length -= 1;
     }
+
+    // cerr << "ref: " << extract(csa, csa[l_res]-1, csa[l_res]) << endl;
+    // cerr << "str: " ;
+    // auto sss = strStart;
+    // for(int i = 0; i < length; i++){
+    //     cerr << *(sss++) ;
+    // }
+    // cerr << endl;
 
     // Find the start intervals in csa_rev
     size_type l_start = 0;
     size_type r_start = csa_rev.size() -1 ;
     string::iterator strEnd = strIt;
-    do{
+    do{ 
         strEnd -- ;
         backward_search(csa_rev, l_start, r_start, (*strEnd), l_start, r_start);
     }while(strEnd != strStart);
     pair<int, int> beg_interval = make_pair(l_start, r_start);
 
-    auto ret_cp= create_phrase(l_start, length-1);
+    auto ret_cp= create_phrase(l_start, length);
     Phrase * p = ret_cp.first;
 
     // this is a newly inserted phrase
@@ -300,14 +310,37 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
 
             if (int(new_l) <= int(new_r)){
                 for(int i = new_l; i <= new_r; i++){
-                    int e = csa_rev.isa[csa[i]];
+                    int e ;
+                    if (csa[i] == csa.size() - 1){
+                        e = csa_rev.isa[csa.size() - 1];
+                    }
+                    else{
+                        e = csa_rev.isa[csa.size() - 2 - csa[i]];
+                    }
                     end_interval.push_back(e);
                 }
             }
         }
 
         sort(end_interval.begin(), end_interval.end());
-        assert((beg_interval.second - beg_interval.first+1) == end_interval.size());
+        // cerr << "------- " << length << " " << (strIt != end) << endl;
+        // cerr << "ref last: " << extract(csa, csa[l_res]-1, csa[l_res]) << endl;
+        // cerr << "str next: " << *strIt << endl;
+        // for (int b = beg_interval.first; b <= beg_interval.second; b++){
+        //     cerr << extract(csa_rev, csa_rev[b]+length, csa_rev[b]+length) << " ";
+        //     cerr << csa_rev[b]+length << ", ";
+        // }
+        // cerr << endl;
+        // for (int e : end_interval){
+        //     cerr << extract(csa_rev, csa_rev[e], csa_rev[e]) << " ";
+        //     cerr << csa_rev[e] << ", ";
+        // }
+        // cerr << endl;
+
+        // for(int i =0 ; i<end_interval.size(); i++){
+        //     assert(csa_rev[end_interval[i]] == csa_rev[beg_interval.first+i]+length);
+        // }
+
         Source * source = new Source {p, beg_interval, end_interval, length-1};
         auto ret = sources.insert(source);
 

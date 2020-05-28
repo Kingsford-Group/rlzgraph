@@ -204,6 +204,32 @@ class RLZ{
      */
     void transferSourceStarts(Source * s);
 
+    
+    /**
+     * @brief Optimize the phrase boundaries that result in the most number of overlaps. Updates the phrase set
+     * 
+     * @param phrases 
+     * @param sources 
+     */
+    void optimize_phrases();
+
+    /**
+     * @brief Set "start" of each phrase to the left most boundary of each source
+     * 
+     * @param phrases Holder of the updated phrase set
+     * @param sources Set of sources
+     */
+    void reset_phrases();
+
+    /**
+     * @brief Set the phrase position to the left most position in the original reference
+     * 
+     * @param phrases 
+     * @param sources 
+     * @param csa 
+     */
+    void set_phrases_leftmost();
+
 
     /**
      * @brief Write sources to file
@@ -222,14 +248,6 @@ class RLZ{
 
  
 };
-
-/**
- * @brief Optimize the phrase boundaries that result in the most number of overlaps. Updates the phrase set
- * 
- * @param phrases 
- * @param sources 
- */
-void optimize_phrases(unordered_map<size_t, Phrase*> & phrases, unordered_set<Source*, SourceHash> & sources, int size);
 
 /**
  * @brief Set "start" of each phrase to the left most boundary of each source
