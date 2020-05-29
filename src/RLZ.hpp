@@ -213,6 +213,15 @@ class RLZ{
      */
     void optimize_phrases();
 
+        /**
+     * @brief Optimize the phrase boundaries that result in the most number of overlaps using ILP. Updates the phrase set.
+     * 
+     * @param phrases 
+     * @param sources 
+     */
+    void optimize_phrases_ILP();
+
+
     /**
      * @brief Set "start" of each phrase to the left most boundary of each source
      * 

@@ -17,6 +17,39 @@
 using namespace sdsl;
 using namespace std;
 
+char revCompHelper(char c){
+    switch (c){
+        case 'A': return 'T';
+        case 'C':return 'G';
+        case 'G': return 'C';
+        case 'T': return 'A';
+        case 'N': return 'W';
+        case 'M': return 'A';
+        case 'Y': return 'B';
+        case 'S': return 'D';
+        case 'R': return 'H';
+        case 'K': return 'V';
+        case 'B': return 'M';
+        case 'D': return 'Y';
+        case 'H': return 'S';
+        case 'V': return 'R';
+        case 'U': return 'K';
+        case 'W': return 'N';
+        case '$': return 16;
+    }
+    cerr << "Unrecognized Character (revComp): " << c << endl;
+    exit(1);
+}
+
+string reverseComp(string toreverse){
+    string s ="";
+    for (int i=0;i<toreverse.length();i++){
+        s+=revCompHelper(toreverse[i]);
+    }
+    reverse(s.begin(), s.end());
+    return s;
+}
+
 vector<string> readFASTA(string filename){
     fstream input(filename);
     if (!input.good()) {
@@ -60,8 +93,9 @@ int main(int argc, char * argv[]){
     ofstream out (outputName);
 
     for (string & s : strings){
+        string ref = s + "#" + reverseComp(s);
         csa_wt<> csa;
-        construct_im(csa, s, 1);
+        construct_im(csa, ref, 1);
         for (int i = 0; i < csa.size(); i++){
             out << csa[i] << ",";
         }
