@@ -239,8 +239,8 @@ int main(int argc, char* argv[]){
         string opt_phrase_fname = prefix_fname + "_phrase"+"_opt.txt";
         
 
-        rlz.write_sources(opt_fname);
-        rlz.write_phrases(opt_phrase_fname);
+        // rlz.write_sources(opt_fname);
+        // rlz.write_phrases(opt_phrase_fname);
         cout << "reconstruct works alright for optimized" << endl;
         
         unordered_set<int> positions;
@@ -271,8 +271,8 @@ int main(int argc, char* argv[]){
         string default_fname = prefix_fname + "_default.txt";
         string default_phrase_fname = prefix_fname + "_phrase_default.txt";
 
-        rlz.write_sources(default_fname);
-        rlz.write_phrases(default_phrase_fname);
+        // rlz.write_sources(default_fname);
+        // rlz.write_phrases(default_phrase_fname);
         cout << "reconstruct works alright for default" << endl;
 
         unordered_set<int> positions2;
@@ -303,8 +303,8 @@ int main(int argc, char* argv[]){
         string leftmost_fname = prefix_fname + "_leftmost.txt";
         string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
 
-        rlz.write_sources(leftmost_fname);
-        rlz.write_phrases(leftmost_phrase_fname);
+        // rlz.write_sources(leftmost_fname);
+        // rlz.write_phrases(leftmost_phrase_fname);
 
         cout << "reconstruct works alright for leftmost" << endl;
 
