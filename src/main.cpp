@@ -260,10 +260,9 @@ int main(int argc, char* argv[]){
         string prefix_fname = "sources_" + to_string(Strings_to_use) + "_" + to_string(ref_idx);
         string opt_fname = prefix_fname + "_opt.txt";
         string opt_phrase_fname = prefix_fname + "_phrase"+"_opt.txt";
-        
 
-        rlz.write_sources(opt_fname);
-        rlz.write_phrases(opt_phrase_fname);
+        // rlz.write_sources(opt_fname);
+        // rlz.write_phrases(opt_phrase_fname);
         
         cerr << numPhrases(rlz) <<"," ;
 
@@ -274,8 +273,8 @@ int main(int argc, char* argv[]){
         string default_fname = prefix_fname + "_default.txt";
         string default_phrase_fname = prefix_fname + "_phrase_default.txt";
 
-        rlz.write_sources(default_fname);
-        rlz.write_phrases(default_phrase_fname);
+        // rlz.write_sources(default_fname);
+        // rlz.write_phrases(default_phrase_fname);
 
         cerr << numPhrases(rlz) << "," ;
 
@@ -286,8 +285,8 @@ int main(int argc, char* argv[]){
         string leftmost_fname = prefix_fname + "_leftmost.txt";
         string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
 
-        rlz.write_sources(leftmost_fname);
-        rlz.write_phrases(leftmost_phrase_fname);
+        // rlz.write_sources(leftmost_fname);
+        // rlz.write_phrases(leftmost_phrase_fname);
 
         cerr << numPhrases(rlz) << ",";
 
@@ -297,8 +296,8 @@ int main(int argc, char* argv[]){
         string ILP_fname = prefix_fname + "_ILP.txt";
         string ILP_phrase_fname = prefix_fname + "_phrase_ILP.txt";
 
-        rlz.write_sources(ILP_fname);
-        rlz.write_phrases(ILP_phrase_fname);
+        // rlz.write_sources(ILP_fname);
+        // rlz.write_phrases(ILP_phrase_fname);
 
         cerr << numPhrases(rlz) << endl;
 
