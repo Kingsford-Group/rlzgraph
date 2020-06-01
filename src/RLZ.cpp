@@ -36,17 +36,31 @@ int RLZ::RLZFactor(string & to_process){
     return string1.size();
 }
 
-void RLZ::processSources(bool optimize){
+void RLZ::processSources(int option){
     cout << "Total number of sources: " << sources.size() << endl;
     // for(auto * s : sources){
     //     transferSourceStarts(s);
     //     transferSourceEnds(s);
     // }
     
-    if (optimize)
-        optimize_phrases();
-    else
-        reset_phrases();
+    switch (option){
+        case 0: 
+            cout <<"Greedy" << endl;
+            optimize_phrases();
+            break;
+        case 1:
+            cout <<"ILP" << endl;
+            optimize_phrases_ILP();
+            break;
+        case 2:
+            cout <<"smallest" << endl;
+            reset_phrases();
+            break;
+        default:
+            cout <<"leftmost" << endl;
+            set_phrases_leftmost();
+            break;
+    }
 }
 
 
@@ -195,6 +209,109 @@ void RLZ::optimize_phrases(){
     phrases = new_phrases;
 }
 
+/**
+ * @brief split string on a character
+ * 
+ * @param s string to split 
+ * @param c character to split on
+ * @return vector<string> vector containing splited strings
+ */
+vector<string> split(const string & s, const char& c){
+    string buff = "";
+    vector<string> ret;
+    for(auto n : s){
+        if (n != c)
+            buff += n;
+        else if (n == c && buff != ""){
+            ret.push_back(buff);
+            buff.clear();
+        }
+    }
+    if (buff != "")
+        ret.push_back(buff);
+    return ret;
+}
+
+void RLZ::optimize_phrases_ILP(){
+
+    try{
+        GRBEnv env = GRBEnv(true);
+        env.set("LogFile", "mip1.log");
+        env.start();
+
+        GRBModel model = GRBModel(env);
+
+        GRBVar xVec [csa_rev.size()];
+        vector<GRBVar> yVec;
+
+        for(int i = 0; i < csa_rev.size(); i++){
+            string varName = "x"+to_string(i);
+            GRBVar x = model.addVar(0.0, 1.0, 1.0, GRB_BINARY, varName);
+            xVec[i] = x;
+        }
+
+        int sourceNum = 0;
+        int j = 0;
+        vector<Source *> sourceVec;
+        for(Source * s : sources){
+            sourceVec.push_back(s);
+            sourceNum += s->end_interval.size();
+            GRBVar ySource [s->end_interval.size()];
+            double yCoff [s->end_interval.size()];
+            for (int i =0; i < s->end_interval.size(); i++){
+                string varName = "y_"+to_string(j)+"_"+to_string(i); 
+
+                GRBVar y = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, varName);
+                GRBVar x1 = xVec[s->beg_interval.first+i];
+                GRBVar x2 = xVec[s->end_interval[i]];
+
+                string constrName0 = "c"+to_string(sourceNum)+"_0";
+                string constrName1 = "c"+to_string(sourceNum)+"_1";
+                string constrName2 = "c"+to_string(sourceNum)+"_2";
+                model.addConstr(y >= x1 + x2 - 1, constrName0);
+                model.addConstr(y <= x1, constrName1);
+                model.addConstr(y <= x2, constrName2);
+
+                yVec.push_back(y);
+                ySource[i] = y;
+                yCoff[i] = 1;
+                sourceNum+=1;
+            }
+
+            GRBLinExpr sourceExp;
+            sourceExp.addTerms(yCoff, ySource, s->end_interval.size());
+            string constrName = "c"+to_string(j);
+            model.addConstr(sourceExp, GRB_GREATER_EQUAL, 1, constrName);
+            j++;
+        }
+
+        model.optimize();
+
+        cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
+
+        unordered_map<size_t, Phrase*> new_phrases;
+        PhraseHash hasher;
+
+        for (GRBVar yvar : yVec){
+            if (yvar.get(GRB_DoubleAttr_X) == 1){
+                string name = yvar.get(GRB_StringAttr_VarName);
+                vector<string> splitS = split(name, '_');
+                Source * s = sourceVec[stoi(splitS[1])];
+                s->p->setStart(s->beg_interval.first + stoi(splitS[2]));
+                new_phrases[hasher(*(s->p))] = s->p;
+            }
+        }
+
+        phrases = new_phrases;
+
+    }catch(GRBException e) {
+        cout << "Error code = " << e.getErrorCode() << endl;
+        cout << e.getMessage() << endl;
+    } catch(...) {
+        cout << "Exception during optimization" << endl;
+    }
+}
+
 void RLZ::reset_phrases(){
     PhraseHash hasher;
     unordered_map<size_t, Phrase*> new_phrases;
@@ -213,13 +330,15 @@ void RLZ::set_phrases_leftmost(){
     for(auto * s : sources){
         Phrase * p = s->p;
         int min = RAND_MAX;
+        int argmin = 0;
         for(int b = s->beg_interval.first ; b <= s->beg_interval.second; b++){
             int actual = csa_rev[b];
             if (actual <= min){
                 min = actual;
+                argmin = b;
             }
         }
-        p->setStart(min);
+        p->setStart(argmin);
         auto new_got = new_phrases.find(hasher(*p));
         new_phrases[hasher(*p)] = p;
     }

@@ -14,7 +14,7 @@ int main(int argc, const char** argv){
 
     rlz.processSources();
 
-    rlz.print_comp_string(0);
+    rlz.print_comp_string(3);
 
     rlz.print_phrases();
     rlz.print_sources();
