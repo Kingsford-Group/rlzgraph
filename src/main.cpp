@@ -226,22 +226,22 @@ int main(int argc, char* argv[]){
         printf("Total number of phrases is: %u\n", rlz.numPhrases);
         printf("Total number of unique phrases is: %u\n", rlz.phrases.size());
 
-        int j = 0;
-        for (int i=0;i<strings.size();i++){
-            if (id != 0 && ref_idx == i) continue;    // does not add ref string
-            string test = rlz.decode(j);
-            assert(test.compare(strings[i])==0);
-            j++;
-        }
+        // int j = 0;
+        // for (int i=0;i<strings.size();i++){
+        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        //     string test = rlz.decode(j);
+        //     assert(test.compare(strings[i])==0);
+        //     j++;
+        // }
 
-        string prefix_fname = "sources_" + to_string(Strings_to_use) + "_" + to_string(ref_idx);
-        string opt_fname = prefix_fname + "_opt.txt";
-        string opt_phrase_fname = prefix_fname + "_phrase"+"_opt.txt";
+        // string prefix_fname = "sources_" + to_string(Strings_to_use) + "_" + to_string(ref_idx);
+        // string opt_fname = prefix_fname + "_opt.txt";
+        // string opt_phrase_fname = prefix_fname + "_phrase"+"_opt.txt";
         
 
         // rlz.write_sources(opt_fname);
         // rlz.write_phrases(opt_phrase_fname);
-        cout << "reconstruct works alright for optimized" << endl;
+        // cout << "reconstruct works alright for optimized" << endl;
         
         unordered_set<int> positions;
         for(auto pair : rlz.phrases){
@@ -260,20 +260,20 @@ int main(int argc, char* argv[]){
 
         rlz.reset_phrases();
 
-        j=0;
-        for (int i=0;i<strings.size();i++){
-            if (id != 0 && ref_idx == i) continue;    // does not add ref string
-            string test = rlz.decode(j);
-            assert(test.compare(strings[i])==0);
-            j++;
-        }
+        // j=0;
+        // for (int i=0;i<strings.size();i++){
+        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        //     string test = rlz.decode(j);
+        //     assert(test.compare(strings[i])==0);
+        //     j++;
+        // }
 
-        string default_fname = prefix_fname + "_default.txt";
-        string default_phrase_fname = prefix_fname + "_phrase_default.txt";
+        // string default_fname = prefix_fname + "_default.txt";
+        // string default_phrase_fname = prefix_fname + "_phrase_default.txt";
 
         // rlz.write_sources(default_fname);
         // rlz.write_phrases(default_phrase_fname);
-        cout << "reconstruct works alright for default" << endl;
+        // cout << "reconstruct works alright for default" << endl;
 
         unordered_set<int> positions2;
         for(auto pair : rlz.phrases){
@@ -292,21 +292,21 @@ int main(int argc, char* argv[]){
 
         rlz.set_phrases_leftmost();
 
-        j = 0;
-        for (int i=0;i<strings.size();i++){
-            if (id != 0 && ref_idx == i) continue;    // does not add ref string
-            string test = rlz.decode_refCoord(j);
-            assert(test.compare(strings[i])==0);
-            j++;
-        }
+        // j = 0;
+        // for (int i=0;i<strings.size();i++){
+        //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        //     string test = rlz.decode_refCoord(j);
+        //     assert(test.compare(strings[i])==0);
+        //     j++;
+        // }
 
-        string leftmost_fname = prefix_fname + "_leftmost.txt";
-        string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
+        // string leftmost_fname = prefix_fname + "_leftmost.txt";
+        // string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
 
         // rlz.write_sources(leftmost_fname);
         // rlz.write_phrases(leftmost_phrase_fname);
 
-        cout << "reconstruct works alright for leftmost" << endl;
+        // cout << "reconstruct works alright for leftmost" << endl;
 
         unordered_set<int> positions3;
         for(auto pair : rlz.phrases){
@@ -315,10 +315,10 @@ int main(int argc, char* argv[]){
                 positions3.insert(pair.second->start+1);
                 continue;
             }
-            if (positions3.find(rlz.csa_rev[pair.second->start]) == positions3.end())
-                positions3.insert(rlz.csa_rev[pair.second->start]);
-            if (positions3.find(rlz.csa_rev[pair.second->start]+pair.second->length) == positions3.end())
-                positions3.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
+            if (positions3.find(pair.second->start) == positions3.end())
+                positions3.insert(pair.second->start);
+            if (positions3.find(pair.second->start+pair.second->length) == positions3.end())
+                positions3.insert(pair.second->start+pair.second->length);
         }
         // cerr << "Number of unique positions (leftmost): " << positions2.size() << endl;
         cerr << positions3.size() << endl;

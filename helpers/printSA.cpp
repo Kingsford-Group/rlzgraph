@@ -92,13 +92,22 @@ int main(int argc, char * argv[]){
 
     ofstream out (outputName);
 
-    for (string & s : strings){
-        string ref = s + "#" + reverseComp(s);
-        csa_wt<> csa;
-        construct_im(csa, ref, 1);
-        for (int i = 0; i < csa.size(); i++){
-            out << csa[i] << ",";
-        }
-        out << endl;
-    }    
+    string s = strings[0];
+    string ref = s + "#" + reverseComp(s);
+    csa_wt<> csa;
+    construct_im(csa, ref, 1);
+    for (int i = 0; i < csa.size(); i++){
+        out << csa[i] << ",";
+    }
+    out << endl;
+
+    // for (string & s : strings){
+    //     string ref = s + "#" + reverseComp(s);
+    //     csa_wt<> csa;
+    //     construct_im(csa, ref, 1);
+    //     for (int i = 0; i < csa.size(); i++){
+    //         out << csa[i] << ",";
+    //     }
+    //     out << endl;
+    // }    
 }

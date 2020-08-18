@@ -24,12 +24,18 @@ using namespace sdsl;
 typedef int_vector<>::size_type size_type;
 
 /**
- * Each phrase is a tulple of (start, len) that describes a substring in the compressed string.
+ * @brief Each phrase is a tulple of (start, len) that describes a substring in the compressed string.
  */
 struct Phrase{
     int start;
     int length;
 
+    /**
+     * @brief Compare phrases based on start position and length
+     * 
+     * @param p another phrase 
+     * @return true if both start and length are equal
+     */
     bool operator==(const Phrase & p) const{
         return (this->start == p.start && this->length == p.length);
     }
@@ -38,31 +44,44 @@ struct Phrase{
         out << "(" << start << "," << length << ")";
     }
 
+    // used to reset start points
     void setStart(int s){
         start = s;
     }
 };
 
 /**
- * Each source is desribed by a range on the suffix array.
- * For beginnings, there is only one interval.
+ * @brief Each source is desribed by a range on the suffix array.
+ * For beginnings, there is only one interval, stored as integer pair
  * For endings, there are multiple intervals.
 */
+ 
 struct Source{
     Phrase * p;
     mutable pair<int, int> beg_interval;       // stored as one pair of begin and end pair
     mutable vector<int> end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
     int length;
 
+    /**
+     * @brief compare sources based on corresponding phrase
+     * 
+     * @param s  
+     * @return true if two sources are from the same phrase
+     */
     bool operator==(const Source & s) const{
         return (*(this->p) == *(s.p));
     }
 
+    /* Prints begin and end intervals and corresponding phrase*/
     void print(ostream & out, bool phrase) const{
+
+        // prints phrase
         if (phrase){
             p->print(out);
             out << endl;
         }
+
+        // prints begin and end intervals
         out << "Begin: " << beg_interval.first <<"," << beg_interval.second<< endl;
         out << "End: ";
         for(int i=0; i<end_interval.size(); i++){
@@ -74,7 +93,7 @@ struct Source{
 
 /**
  * @brief hash function for phrases
- * 
+ * Hash value is computed by concatenating start and length
  */
 class PhraseHash {
 public: 
@@ -86,6 +105,10 @@ public:
     } 
 }; 
 
+/**
+ * @brief hash function for sources
+ * Hash value is the pointer location of corresponding phrase
+ */
 class SourceHash{
 public: 
     // id is returned as hash function 
@@ -102,8 +125,8 @@ class RLZ{
 
     public: 
     csa_wt<> csa;       // the compressed suffix array to store the *reversed* reference
-    csa_wt<> csa_rev;
-    vector<vector<Phrase *> > compressed_strings;
+    csa_wt<> csa_rev;   // the compressed suffix array to store the *actual* reference
+    vector<vector<Phrase *> > compressed_strings;   
     unordered_map<size_t, Phrase*> phrases;
     unordered_set<Source*, SourceHash> sources;
     unordered_map<int, char> newChar;
@@ -206,7 +229,8 @@ class RLZ{
 
     
     /**
-     * @brief Optimize the phrase boundaries that result in the most number of overlaps. Updates the phrase set
+     * @brief Optimize the phrase boundaries that result in the most number of overlaps. Updates the phrase set.
+     * Greedy approach.
      * 
      * @param phrases 
      * @param sources 

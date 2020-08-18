@@ -49,7 +49,9 @@ void RLZ::processSources(bool optimize){
         reset_phrases();
 }
 
-
+/**
+ * @brief Chooses one source for each phrase using the greedy approach
+ */
 void RLZ::optimize_phrases(){
 
     Phrase * oldPointer;
