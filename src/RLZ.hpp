@@ -13,6 +13,7 @@
 
 #include <sdsl/suffix_arrays.hpp>
 #include <sdsl/csa_alphabet_strategy.hpp>
+#include "gurobi_c++.h"
 #include <string>
 #include <iostream>
 #include <unordered_set>
@@ -210,8 +211,12 @@ class RLZ{
     /**
      * @brief Go through all phrases (unqiue) and find the begin intervals of their sources
      * Query each phrase on the reversed reversed BWT. (backward search)
+     * @param 0 if use greedy
+     *        1 if use ILP
+     *        2 if use smallest
+     *        3 if use leftmost
      */
-    void processSources(bool optimize);
+    void processSources(int option);
     
     /**
      * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
@@ -236,6 +241,7 @@ class RLZ{
      * @param sources 
      */
     void optimize_phrases();
+
 
         /**
      * @brief Optimize the phrase boundaries that result in the most number of overlaps using ILP. Updates the phrase set.

@@ -1,19 +1,20 @@
-#BOOST=/home/yutongq/SQUID/Tools/boost_1_64_0/
-BOOST=~/storage/Tools/boost_1_64_0/
 HOME=/home/yutongq
-# BAMTOOLS = /home/yutongq/SQUID/Tools/bamtools/usr/local/
-# GLPK = /home/yutongq/SQUID/Tools/glpk-4.62/bin
+GUROBI = /opt/local/stow/gurobi901/linux64
+
 CC = gcc
 CXX = g++
-# INCLUDES = -g -I $(BAMTOOLS)/include/bamtools -I $(GLPK)/include -I $(BOOST)
-INCLUDES = -g -O0 -I $(HOME)/include
+
+INCLUDES = -g -O0 -I $(HOME)/include -I $(GUROBI)/include
 CXXFLAGS = -std=c++11 $(INCLUDES)
+
 LDADD = $(HOME)/lib/libsdsl.a $(HOME)/lib/libdivsufsort.a $(HOME)/lib/libdivsufsort64.a
-# LDADD = $(BAMTOOLS)/lib/libbamtools.a $(GLPK)/lib/libglpk.a
+GUROBI_LIB = $(shell ls $(GUROBI)/lib/libgurobi[0-9][0-9].so | tail -n 1 | xargs basename -s .so | cut -b 4-)
 LDLIBS = $(LDADD)
+LDLIBS += -L $(GUROBI)/lib -lgurobi_g++5.2 -l$(GUROBI_LIB)
+LDFLAGS += -Wl,-rpath,$(GUROBI)/lib
 
 SRCS=src/RLZ.hpp src/RLZ.cpp src/main.cpp
-TESTSRCS=src/RLZ.hpp src/RLZ.cpp src/test.cpp
+TESTSRCS=src/RLZ.hpp src/RLZ.cpp test/test.cpp
 printSASRC=helpers/printSA.cpp
 all: bin/main 
 
@@ -23,7 +24,7 @@ printSA: bin/printSA
 
 bin/main: $(subst .cpp,.o,$(SRCS))
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 # bin/test: $(subst .cpp,.o,$(TESTSRCS))
 # 	mkdir -p bin
@@ -31,11 +32,11 @@ bin/main: $(subst .cpp,.o,$(SRCS))
 
 bin/test: $(subst .cpp,.o,$(TESTSRCS))
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 bin/printSA: $(subst .cpp,.o,$(printSASRC))
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 clean:
 	rm -f bin/main src/*.o test/*.o

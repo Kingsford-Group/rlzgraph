@@ -131,6 +131,33 @@ char revCompHelper(char c){
     exit(1);
 }
 
+int numPhrases(RLZ & rlz){
+    unordered_set<int> positions;
+    for(auto pair : rlz.phrases){
+        if (pair.second->start > rlz.csa_rev.size() - 1){
+            positions.insert(pair.second->start);
+            positions.insert(pair.second->start+1);
+            continue;
+        }
+        if (positions.find(rlz.csa_rev[pair.second->start]) == positions.end())
+            positions.insert(rlz.csa_rev[pair.second->start]);
+        if (positions.find(rlz.csa_rev[pair.second->start]+pair.second->length) == positions.end())
+            positions.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
+    }
+        // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
+    return positions.size();
+}
+
+void verify(RLZ & rlz, vector<string> strings, int ref_idx, int id){
+    int j = 0;
+    for (int i=0;i<strings.size();i++){
+        if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        string test = rlz.decode(j);
+        assert(test.compare(strings[i])==0);
+        j++;
+    }
+}
+
 string reverseComp(string toreverse){
     string s ="";
     for (int i=0;i<toreverse.length();i++){
@@ -195,7 +222,7 @@ int main(int argc, char* argv[]){
 
         // rlz.print_sources();
 
-        rlz.processSources(true);
+        rlz.processSources(0);
 
 
         cout << "Finished adding sequences." << endl;
@@ -223,9 +250,13 @@ int main(int argc, char* argv[]){
         // cout << graph.tree.size << endl;
         // printf("Graph built with %lu nodes and %lu edges.\n", graph.numNodes, graph.numEdges);
 
-        printf("Total number of phrases is: %u\n", rlz.numPhrases);
-        printf("Total number of unique phrases is: %u\n", rlz.phrases.size());
+        cout << "Total number of phrases is: " << rlz.numPhrases << endl;
+        cout << "Total number of unique phrases is: " << rlz.phrases.size() << endl;
 
+        // ----------- Greedy -----------------------------------------------------------
+
+
+<<<<<<< HEAD
         // int j = 0;
         // for (int i=0;i<strings.size();i++){
         //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
@@ -242,24 +273,21 @@ int main(int argc, char* argv[]){
         // rlz.write_sources(opt_fname);
         // rlz.write_phrases(opt_phrase_fname);
         // cout << "reconstruct works alright for optimized" << endl;
+=======
+
+        string prefix_fname = "sources_" + to_string(Strings_to_use) + "_" + to_string(ref_idx);
+        string opt_fname = prefix_fname + "_opt.txt";
+        string opt_phrase_fname = prefix_fname + "_phrase"+"_opt.txt";
+
+        // rlz.write_sources(opt_fname);
+        // rlz.write_phrases(opt_phrase_fname);
+>>>>>>> 7a21b571b6b8c07c8c15286210dbc6b655fd057c
         
-        unordered_set<int> positions;
-        for(auto pair : rlz.phrases){
-            if (pair.second->start > rlz.csa_rev.size() - 1){
-                positions.insert(pair.second->start);
-                positions.insert(pair.second->start+1);
-                continue;
-            }
-            if (positions.find(rlz.csa_rev[pair.second->start]) == positions.end())
-                positions.insert(rlz.csa_rev[pair.second->start]);
-            if (positions.find(rlz.csa_rev[pair.second->start]+pair.second->length) == positions.end())
-                positions.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
-        }
-        // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
-        cerr << positions.size() <<"," ;
+        cerr << numPhrases(rlz) <<"," ;
 
-        rlz.reset_phrases();
+        // ----------- Smallest -----------------------------------------------------------
 
+<<<<<<< HEAD
         // j=0;
         // for (int i=0;i<strings.size();i++){
         //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
@@ -267,12 +295,16 @@ int main(int argc, char* argv[]){
         //     assert(test.compare(strings[i])==0);
         //     j++;
         // }
+=======
+        rlz.reset_phrases();
+>>>>>>> 7a21b571b6b8c07c8c15286210dbc6b655fd057c
 
         // string default_fname = prefix_fname + "_default.txt";
         // string default_phrase_fname = prefix_fname + "_phrase_default.txt";
 
         // rlz.write_sources(default_fname);
         // rlz.write_phrases(default_phrase_fname);
+<<<<<<< HEAD
         // cout << "reconstruct works alright for default" << endl;
 
         unordered_set<int> positions2;
@@ -289,9 +321,12 @@ int main(int argc, char* argv[]){
         }
         // cerr << "Number of unique positions (default): " << positions2.size() << endl;
         cerr << positions2.size() << "," ;
+=======
+>>>>>>> 7a21b571b6b8c07c8c15286210dbc6b655fd057c
 
-        rlz.set_phrases_leftmost();
+        cerr << numPhrases(rlz) << "," ;
 
+<<<<<<< HEAD
         // j = 0;
         // for (int i=0;i<strings.size();i++){
         //     if (id != 0 && ref_idx == i) continue;    // does not add ref string
@@ -299,6 +334,11 @@ int main(int argc, char* argv[]){
         //     assert(test.compare(strings[i])==0);
         //     j++;
         // }
+=======
+        // ----------- Leftmost -----------------------------------------------------------
+
+        rlz.set_phrases_leftmost();
+>>>>>>> 7a21b571b6b8c07c8c15286210dbc6b655fd057c
 
         // string leftmost_fname = prefix_fname + "_leftmost.txt";
         // string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
@@ -306,6 +346,7 @@ int main(int argc, char* argv[]){
         // rlz.write_sources(leftmost_fname);
         // rlz.write_phrases(leftmost_phrase_fname);
 
+<<<<<<< HEAD
         // cout << "reconstruct works alright for leftmost" << endl;
 
         unordered_set<int> positions3;
@@ -322,8 +363,20 @@ int main(int argc, char* argv[]){
         }
         // cerr << "Number of unique positions (leftmost): " << positions2.size() << endl;
         cerr << positions3.size() << endl;
+=======
+        cerr << numPhrases(rlz) << ",";
 
+        // ----------- ILP -----------------------------------------------------------
+        rlz.processSources(1);
 
+        string ILP_fname = prefix_fname + "_ILP.txt";
+        string ILP_phrase_fname = prefix_fname + "_phrase_ILP.txt";
+>>>>>>> 7a21b571b6b8c07c8c15286210dbc6b655fd057c
+
+        // rlz.write_sources(ILP_fname);
+        // rlz.write_phrases(ILP_phrase_fname);
+
+        cerr << numPhrases(rlz) << endl;
 
     }
     else {
