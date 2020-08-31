@@ -1,72 +1,49 @@
-#include "../src/bitvector.h"
-#include "../src/RLZfact.h"
-#include "../src/RLZgraph.h"
+#include "../src/RLZ.hpp"
+#include <string>
+#include <iostream>
+#include <unordered_set>
 
-struct classcomp2{
-    bool operator() (const long int & lhs, const long int & rhs) const{
-        return lhs > rhs;
+using namespace std;
+
+int numPhrases(RLZ & rlz){
+    unordered_set<int> positions;
+    for(auto pair : rlz.phrases){
+        if (pair.second->start > rlz.csa_rev.size() - 1){
+            positions.insert(pair.second->start);
+            positions.insert(pair.second->start+1);
+            continue;
+        }
+        if (positions.find(rlz.csa_rev[pair.second->start]) == positions.end())
+            positions.insert(rlz.csa_rev[pair.second->start]);
+        if (positions.find(rlz.csa_rev[pair.second->start]+pair.second->length) == positions.end())
+            positions.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
     }
-};
+        // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
+    return positions.size();
+}
 
-
-int main(){
+int main(int argc, char** argv){
     string ref = "ATATTCGACGAGAT";
-    string s1 = "ATAATTCGATTCGAT";
+    string s1 = "ATAATTCGATTCGAA";
     string s2 = "ATTTCGAGAM";
 
-    RLZgraph graph(ref);
+    reverse(ref.begin(), ref.end());
+    RLZ rlz(ref);
+    rlz.RLZFactor(s1);
 
-    // graph.addString("TTCGA");
-    // graph.addString(s1);
-    graph.addString(s2);
+    rlz.processSources(stoi(argv[1]));
 
-    int i = 0;
-    for (RLZfact fact : graph.rlzarr){
-        printf("The %u th string: ",i);
-        for (long int j=0;j<fact.phrases.size();j++){
-            printf("(%lu, %lu)", fact.getPhrase(j).pos, fact.getPhrase(j).length);
-        }
-        cout << endl;
-        i++;
-    }
+    rlz.print_phrases();
+    rlz.print_sources();
+    rlz.print_comp_string(0);
 
-    auto it = graph.nodeDict.end();
-    it--;
-    for (;it!=graph.nodeDict.begin(); it--){
-        printf("Node at %lu (pos: %lu, length:%lu): %s\n",it->first, it->second->pos,it->second->length, graph.access(it->second).c_str());
-        auto colorit = it->second->Ends.begin();
-        for (;colorit!=it->second->Ends.end();colorit++){
-            printf("   It has ends at string %lu: ", colorit->first);
-            auto rankit = colorit->second.begin();
-            for (; rankit!=colorit->second.end(); rankit++){
-                cout << *rankit << ",";
-            }
-            cout << endl;
-        }
-        printf("   And the next node is at %lu.\n", it->second->next->pos);
-    }
+    cout << rlz.decode(0) << endl;
 
-    string t1 = graph.reconstruct(0);
-    cout << *(graph.ref) << endl;
-    // string t2 = graph.reconstruct(1);
-    // assert(s1==t1);
-    // assert(s2==t2);
-    cout << t1 << endl;
-    cout << endl;
-    // cout << t2 << endl;
+    cout << "Num unique positions: " << numPhrases(rlz) << endl;
 
-    // map<long int, vector<long int>, classcomp2> Starts;
-
-    // Starts.insert(make_pair(1, vector<long int>{2,3}));
-    // Starts.insert(make_pair(4, vector<long int> {444,11}));
-    // Starts.insert(make_pair(3, vector<long int> {123}));
-
-    // auto iit = Starts.upper_bound(2);
-    // cout << iit->first << endl;
-
-    // for(auto it = Starts.begin(); it!=Starts.end(); it++){
-    //     cout << it->first << endl;
-    // }
+    
+    // cout << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << endl;
+    // csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", rlz.csa_rev); 
 
     return 0;
 }
