@@ -1,0 +1,7 @@
+
+Gurobi 9.0.1 (linux64, gurobi_cl) logging started Fri May 29 11:31:22 2020
+
+Using license file /opt/gurobi/gurobi.lic
+Set parameter TokenServer to value ocean
+Set parameter Username
+Set parameter LogFile to value gurobi.log
