@@ -1,32 +1,26 @@
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
 
-#include "util.h"
+using namespace std;
 
-void print_help(){}
-void print_version(){}
+// extern string Input_ref = "";
+// extern string Input_strings = "";
 
 
-bool parse_argument(int argc, char * argv[]){
-    bool success=true;
-	bool specify_mq=false;
-	for(int i=1; i<argc; i++){
-		if(string(argv[i])=="--help"){
-			print_help();
-			exit(0);
-		}
-		if(string(argv[i])=="--version"){
-			print_version();
-			exit(0);
-		}
-        if (string(argv[i])=="-r"){
-            Input_ref = string(argv[++i]);
-        }
-        if (string(argv[i])=="-i"){
-            Input_strings = string(argv[++i]);
-        }
-    }
-    if (Input_ref == "" && Input_strings=="") return false;
-    return success;
+void print_help(){
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("|  USAGE: rlzgraph -r <ref.fa> -i <input.fa> -g <output_graph_name> -p <output_phrase_name> |\n");
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("-i is required. If reference fasta is missing, the first sequence of the input fasta file will be used as reference.\n");
+    printf("Optional Arguments: \n");
+    printf("          -ii <ref idx>         The index of the reference sequence\n");
+    printf("          -n <num seq>          Number of sequences to use\n");
 }
+
+void print_version(){}
 
 vector<string> readFASTA(string filename, int num_seq){
     fstream input(filename);
@@ -58,6 +52,8 @@ vector<string> readFASTA(string filename, int num_seq){
             }
         }
     }
+    strings.push_back(content);
+    cerr << strings[0].length() << endl;
     cout << "Read " << id << " strings. "<< endl;
     return strings;
 }
