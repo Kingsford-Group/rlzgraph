@@ -266,7 +266,7 @@ int main(int argc, char* argv[]){
         
         cerr << numPhrases(rlz) <<"," ;
 
-        // ----------- Smallest -----------------------------------------------------------
+        // ----------- Leftmost -----------------------------------------------------------
 
         rlz.reset_phrases();
 
@@ -280,7 +280,7 @@ int main(int argc, char* argv[]){
 
         // ----------- Leftmost -----------------------------------------------------------
 
-        rlz.set_phrases_leftmost();
+        // rlz.set_phrases_leftmost();
 
         // string leftmost_fname = prefix_fname + "_leftmost.txt";
         // string leftmost_phrase_fname = prefix_fname + "_phrase_leftmost.txt";
@@ -288,7 +288,7 @@ int main(int argc, char* argv[]){
         // rlz.write_sources(leftmost_fname);
         // rlz.write_phrases(leftmost_phrase_fname);
 
-        cerr << numPhrases(rlz) << ",";
+        // cerr << numPhrases(rlz) << ",";
 
         // ----------- ILP -----------------------------------------------------------
         rlz.processSources(1);

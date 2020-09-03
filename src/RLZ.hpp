@@ -18,6 +18,7 @@
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
+#include <climits>
 
 using namespace std;
 using namespace sdsl;
@@ -59,8 +60,7 @@ struct Phrase{
  
 struct Source{
     Phrase * p;
-    mutable pair<int, int> beg_interval;       // stored as one pair of begin and end pair
-    mutable vector<int> end_interval;  //stored as pairs of interval begins and ends. Each character has a continuous interval.
+    vector<int> start_loc;
     int length;
 
     /**
@@ -83,10 +83,9 @@ struct Source{
         }
 
         // prints begin and end intervals
-        out << "Begin: " << beg_interval.first <<"," << beg_interval.second<< endl;
-        out << "End: ";
-        for(int i=0; i<end_interval.size(); i++){
-            out << end_interval[i] << ",";
+        out << "Begin: ";
+        for (int loc : start_loc){
+            out << loc << ", ";
         }
         out << endl;
     }
@@ -120,6 +119,40 @@ public:
 };
 
 /**
+ * @brief pairing of reference position and number of source intersections. Used in greedy approach to optimize phrases.
+ */
+struct WeightedPos{
+    int pos;
+    int weight;
+};
+
+
+/**
+ * @brief compare weighted pos a and weighted pos b. Return true if a.weight < b.weight. If they have equal weights, return true if a.pos < b.pos
+ */
+class ComparePos{
+    bool comp(const WeightedPos & a, const WeightedPos & b) const{
+        if (a.weight < b.weight) {
+            return true;
+        } else if (a.weight == b.weight){
+            return a.pos < b.pos;
+        }
+        return false;
+    }
+};
+
+struct ComparePosPtr {
+  bool operator()(const WeightedPos* a, const WeightedPos* b) const  { 
+        if (a->weight < b->weight) {
+            return true;
+        } else if (a->weight == b->weight){
+            return a->pos < b->pos;
+        }
+        return false;
+    }
+};
+
+/**
  * @brief Stores all phrases, sources and the compressed strings in the form of phrases. Also it stores the reference string as a csa. 
  */
 class RLZ{
@@ -130,8 +163,8 @@ class RLZ{
     vector<vector<Phrase *> > compressed_strings;   
     unordered_map<size_t, Phrase*> phrases;
     unordered_set<Source*, SourceHash> sources;
-    unordered_map<int, char> newChar;
-    unordered_map<char, int> newChar_rev;
+    unordered_map<int, char> newChar_toChar;
+    unordered_map<char, int> newChar_toIdx;
     bool optimized = false;
     int numPhrases = 0;
     int totalLength = 0;
@@ -284,6 +317,14 @@ class RLZ{
      * @param fname 
      */
     void write_phrases(string & fname);
+
+    /**
+     * @brief Check if the alphabet contains the current character. If not, create a new phrase from the new alphabet
+     * 
+     * @param strIt 
+     * @return Phrase* 
+     */
+    Phrase* check_alphabet(string::iterator & strIt);
 
  
 };
