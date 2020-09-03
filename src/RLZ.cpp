@@ -33,18 +33,23 @@ int RLZ::RLZFactor(string & to_process){
     string revQuery;
     revQuery.assign(to_process.rbegin(), to_process.rend());
 
+    // cout << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << endl;
+    // csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", csa);
+
     // the compressed string
     vector<Phrase*> compressed;
 
-    auto strIt = revQuery.begin();
-    while (strIt != revQuery.end()){
+    auto strIt = to_process.begin();
+    while (strIt != to_process.end()){
     //     auto start = high_resolution_clock::now();
 
         // get one phrase per bwt query
-        Phrase * p = query_bwt(strIt, revQuery.end());
+        Phrase * p = query_bwt(strIt, to_process.end());
         // auto end = high_resolution_clock::now();
         // auto duration = duration_cast<microseconds>(end - start);
         // cout << duration.count()<< "," << p->length << endl;
+        
+        // cerr << "Done for one phrase: " << p->start << "cerr," << p->length << endl;
         compressed.push_back(p);
     }
 
@@ -429,12 +434,16 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
 
         backward_search(csa, l, r, (*strIt), l, r);
 
+        // cerr << "In bwt query loop: " << l <<", "<< r << ", "<< *strIt << endl;
+
         //found a match
-        if (r+1-l > 0) length ++; 
-        else break;
-        
-        if (strIt != end) strIt ++;
-        else break;
+        if (r+1-l > 0 && strIt != end){
+            length ++;
+            strIt ++;
+        } 
+        else {
+            break;
+        }
     }
 
     vector<int> start_loc;
@@ -601,7 +610,9 @@ string RLZ::decode(int stringID){
             toReturn += newChar_toChar[p->start];
         }
         else {
-            toReturn += extract(csa_rev, csa_rev[p->start], csa_rev[p->start]+p->length-1);
+            string ext = extract(csa, p->start, p->start+p->length-1);
+            reverse(ext.begin(), ext.end());
+            toReturn += ext;
         }
     }
     return toReturn;
