@@ -3,9 +3,15 @@
 #include <vector>
 #include <map>
 #include "RLZ.hpp"
+
+#include <ctime>
+#include <ratio>
+#include <chrono>
 // #include "util.cpp"
 
 using namespace std;
+using namespace std::chrono;
+
 
 string Input_ref="";
 string Input_strings="";
@@ -139,10 +145,10 @@ int numPhrases(RLZ & rlz){
             positions.insert(pair.second->start+1);
             continue;
         }
-        if (positions.find(rlz.csa_rev[pair.second->start]) == positions.end())
-            positions.insert(rlz.csa_rev[pair.second->start]);
-        if (positions.find(rlz.csa_rev[pair.second->start]+pair.second->length) == positions.end())
-            positions.insert(rlz.csa_rev[pair.second->start]+pair.second->length);
+        if (positions.find(pair.second->start) == positions.end())
+            positions.insert(pair.second->start);
+        if (positions.find(pair.second->start+pair.second->length) == positions.end())
+            positions.insert(pair.second->start+pair.second->length);
     }
         // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
     return positions.size();
@@ -210,7 +216,62 @@ int main(int argc, char* argv[]){
         // rlz.print_comp_string(0);
         // cout << rlz.decode(0) << endl;
 
+        // verify(rlz, strings, ref_idx, id);
+        cout << "Number of phrase boundaries for smallest\t" << numPhrases(rlz) << endl;
+        
+        // rlz.print_comp_string(0);
+        string fname1 = "smallest_ecoli.phrases";
+        string fname13 = "smallest_ecoli.comp";
+
+        rlz.write_phrases(fname1);
+        rlz.write_compString(fname13);
+
+        // cout << rlz.decode(0) << endl;
+
+        rlz.processSources(2);
+        // verify(rlz, strings, ref_idx, id);
+        cout << "Number of phrase boundaries for leftmost\t" << numPhrases(rlz) << endl;
+        
+        // rlz.print_comp_string(0);
+        string fname2 = "leftmost_ecoli.phrases";
+        string fname23 = "leftmost_ecoli.comp";
+        rlz.write_phrases(fname2);
+        rlz.write_compString(fname23);
+
+        // cout << rlz.decode(0) << endl;
+
+        // rlz.processSources(0);
+
+        
+        // rlz.print_comp_string(0);
+        // string fname3 = "greedy_K12.phrases";
+        // string fname33 = "greedy_K12.comp";
+
+        // rlz.write_phrases(fname3);
+        // rlz.write_compString(fname33);
+
+
+        // cout << rlz.decode(0) << endl;
+        
+        // verify(rlz, strings, ref_idx, id);
+        // cout << "Number of phrase boundaries for greedy: " << numPhrases(rlz) << endl;
+
+        rlz.processSources(1);
+
+        
+        rlz.print_comp_string(0);
+        string fname3 = "ILP_ecoli.phrases";
+        string fname33 = "ILP_ecoli.comp";
+
+        rlz.write_phrases(fname3);
+        rlz.write_compString(fname33);
+
+
+        // cout << rlz.decode(0) << endl;
+        
         verify(rlz, strings, ref_idx, id);
+        cout << "Number of phrase boundaries for ILP: " << numPhrases(rlz) << endl;
+
 
     }
     else {
