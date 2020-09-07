@@ -60,6 +60,7 @@ struct Phrase{
  
 struct Source{
     Phrase * p;
+    pair<int, int> beg_interval;
     vector<int> start_loc;
     int length;
 
@@ -149,6 +150,12 @@ struct ComparePosPtr {
             return a->pos < b->pos;
         }
         return false;
+    }
+};
+
+struct pair_hash{
+    size_t operator()(const pair<Source*, bool> & pair) const{
+        return size_t(pair.first->p);
     }
 };
 
@@ -317,6 +324,8 @@ class RLZ{
      * @param fname 
      */
     void write_phrases(string & fname);
+
+    void write_compString(string & fname);
 
     /**
      * @brief Check if the alphabet contains the current character. If not, create a new phrase from the new alphabet

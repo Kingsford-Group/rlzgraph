@@ -40,6 +40,7 @@ int RLZ::RLZFactor(string & to_process){
     vector<Phrase*> compressed;
 
     auto strIt = to_process.begin();
+    int length = 0;
     while (strIt != to_process.end()){
     //     auto start = high_resolution_clock::now();
 
@@ -48,8 +49,9 @@ int RLZ::RLZFactor(string & to_process){
         // auto end = high_resolution_clock::now();
         // auto duration = duration_cast<microseconds>(end - start);
         // cout << duration.count()<< "," << p->length << endl;
-        
-        // cerr << "Done for one phrase: " << p->start << "cerr," << p->length << endl;
+        length += p->length;
+        // cerr << "Done for one phrase: " << p->start << "," << p->length << endl;
+        // cerr << "Current length: " << length << endl;
         compressed.push_back(p);
     }
 
@@ -60,29 +62,78 @@ int RLZ::RLZFactor(string & to_process){
 }
 
 void RLZ::processSources(int option){
-    cout << "Total number of sources: " << sources.size() << endl;
+    cout << "Total number of sources\t" << sources.size() << endl;
     // for(auto * s : sources){
     //     transferSourceStarts(s);
     //     transferSourceEnds(s);
     // }
+
+    auto start_time = high_resolution_clock::now();
+
+    // if the start locations are not initialized, convert csa idx to reference index
+    // find the leftmost locations on the fly.
+    
+    vector<int> SA (csa.size(),-1);
+    
+    if ((*sources.begin())->start_loc.empty()){
+        unordered_map<size_t, Phrase*> min_phrases;
+        PhraseHash hasher;
+        for(auto * s : sources){
+            int min_loc = INT_MAX;
+            for(int i =s->beg_interval.first; i<=s->beg_interval.second; i++){
+                int loc;
+                if (SA[i]!=-1) loc = SA[i];
+                else loc = csa[i];
+                s->start_loc.push_back(loc);
+                if (loc < min_loc){
+                    min_loc = loc;
+                }
+            }
+            s->p->start = min_loc;
+            min_phrases[hasher(*(s->p))]=(s->p);
+        }
+        phrases = min_phrases;
+    }
+
+    auto end_time = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
+    cout << "Time to process sources (csa access): " << time_span.count() << endl;
+
     
     switch (option){
-        case 0: 
+        case 0: {
             cout <<"Greedy" << endl;
+            auto t11 = high_resolution_clock::now();
             optimize_phrases();
+            auto t22 = high_resolution_clock::now();
+            duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
+            cout << "Time to reprocess sources (greedy): " << time_span3.count() << endl;
+
             break;
-        case 1:
+        }
+        case 1:{
             cout <<"ILP" << endl; 
+            auto t11 = high_resolution_clock::now();
             optimize_phrases_ILP();
+            auto t22 = high_resolution_clock::now();
+            duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
+            cout << "Time to reprocess sources (ILP): " << time_span3.count() << endl;
+
             break;
+        }
         // case 2:
         //     cout <<"smallest" << endl;
         //     reset_phrases();
         //     break;
-        default:
+        case 2:{
             cout <<"leftmost" << endl;
+            auto t1 = high_resolution_clock::now();
             reset_phrases();
+            auto t2 = high_resolution_clock::now();
+            duration<double> time_span2 = duration_cast<duration<double>>(t2 - t1);
+            cout << "Time to reprocess sources (leftmost): " << time_span2.count() << endl;
             break;
+        }
     }
 }
 
@@ -91,19 +142,27 @@ void RLZ::processSources(int option){
  */
 void RLZ::optimize_phrases(){
 
+    // print_sources();
+
     // stores weighted positions. weight is number of source boundaries
     vector<WeightedPos> weightedPoses(csa.size());
+
     // stores set of sources corresponding a particular position.
-    vector< unordered_set<Source *> > posToSource(csa.size());
+    // the first in pair stores the source pointer
+    // the second in pair indicates whether this position is a left (1) or a right (0) boundary.
+    vector< unordered_set<pair<Source *, bool>, pair_hash> > posToSource(csa.size());
+    
     // stores status of each source
-    vector<bool> sourceStatus(sources.size());
+    // vector<bool> sourceStatus(sources.size());
+    
     // temporarily stores each source in vector for identifying each source.
-    vector<Source*> sourcesVec(sources.size());
+    unordered_set<Source*, SourceHash> sourcesLeft(sources);
+    
     // stores updated phrases
     unordered_map<size_t, Phrase*> new_phrases;
     PhraseHash hasher;
 
-    int sourceCounter = 0;
+    // int sourceCounter = 0;
 
     /**
      * For each source, add count at its left and right boundaries. Avoid adding duplicated positions using a hashset.
@@ -123,73 +182,81 @@ void RLZ::optimize_phrases(){
             // left boundary 
             if (left_it == uniquePos.end()){
                 uniquePos.insert(left);
-                // create a new position object if it has not been created.
-                if (weightedPoses[left].pos == -1){
-                    WeightedPos leftPos {left, 1};
-                    weightedPoses[left] = leftPos;
-                } else {
-                    weightedPoses[left].weight += 1; 
-                }
+                //update position count
+                weightedPoses[left].pos=left;
+                weightedPoses[left].weight += 1; 
+
+                // insert source pointer to position
+                posToSource[left].insert(make_pair((*sourceIt), true));
+
             }
             
             // right boundary
             if (right_it == uniquePos.end()){
                 uniquePos.insert(right);
-                if (weightedPoses[right].pos == -1){
-                    WeightedPos rightPos {right, 1};
-                    weightedPoses[right] = rightPos;
-                } else {
-                    weightedPoses[right].weight += 1;
-                }
+                //update position count
+                weightedPoses[right].pos=right;
+                weightedPoses[right].weight += 1;
+                
+                // insert source pointer to position
+                posToSource[right].insert(make_pair((*sourceIt),false));
             }
 
-            // insert source pointer to position
-            posToSource[left].insert((*sourceIt));
-            posToSource[right].insert((*sourceIt));
         }
 
-        // update sourceStatus
-        sourceStatus[sourceCounter] = true;
-        sourcesVec[sourceCounter] = (*sourceIt);
+        // // update sourceStatus
+        // sourceStatus[sourceCounter] = true;
+        // sourcesVec[sourceCounter] = (*sourceIt);
 
-        sourceCounter ++;
+        // sourceCounter ++;
     }
 
     // create a sorted set of weightedPoses. 
     set<WeightedPos*,ComparePosPtr> weightedPoses_Set;
     // add position pointers to the set.
-    for (auto pos: weightedPoses){
-        if (pos.pos > -1)
-            weightedPoses_Set.insert(&pos);
+    for (int i =0 ; i < weightedPoses.size();i++){
+        WeightedPos * pos = &weightedPoses[i];
+        if (pos->weight > 0)
+            weightedPoses_Set.insert(pos);
     }
 
     // Start to greedily extract sources until all positions left have weight = 1
     // It then means that no there is no need to make choices for the rest of the phrases. 
     // The phrases that were not looked at will have the default boundaries (leftmost).
     // --set.end() returns the largest element in the set.
-    while(weightedPoses.size() > 0 && (*--weightedPoses_Set.end())->weight > 0){
+    while((weightedPoses_Set.size() > 0) && ((*--weightedPoses_Set.end())->weight > 1)){
         
         // positions that need to be updated
-        vector<int> storedPos;
+        vector<int> storedPos(csa.size()-1);
     
         // remove the largest element in the set
         auto it = --weightedPoses_Set.end();
         WeightedPos currPos = **it;
+        // cout << weightedPoses_Set.size() << endl;
+        // cout << currPos.pos << ", " << currPos.weight << endl;
         storedPos[currPos.pos]  = 1;
         weightedPoses_Set.erase(it);
         
         // for all sources at that position, reset its corresponding phrase, remove all of its other occurrences in the set
-        for (auto sourceIt = posToSource[currPos.pos].begin(); sourceIt != posToSource[currPos.pos].end(); sourceIt++){
+        for (auto pairIt = posToSource[currPos.pos].begin(); pairIt != posToSource[currPos.pos].end(); pairIt++){
             
+            bool indicator = pairIt->second;
+            Source * currSource = pairIt->first;
+
             // update corresponding phrase
-            (*sourceIt)->p->setStart(currPos.pos);
-            new_phrases[hasher(*(*sourceIt)->p)] = (*sourceIt)->p;
-            
+            if (indicator){
+                currSource->p->setStart(currPos.pos);
+                new_phrases[hasher(*currSource->p)] = currSource->p;
+            } else {
+                currSource->p->setStart(currPos.pos - currSource->length);
+                new_phrases[hasher(*currSource->p)] = currSource->p;
+            }
+
             // remove all other occurrences
-            for(int loc : (*sourceIt)->start_loc){
+            for(int loc : currSource->start_loc){
 
                 int left = loc;
-                int right = loc + (*sourceIt)->length;
+                int right = loc + currSource->length;
 
                 if (storedPos[left] != 1) {
                     //remove left and right positions from set
@@ -207,9 +274,11 @@ void RLZ::optimize_phrases(){
                 weightedPoses[right].weight --;
 
                 // remove the current source from posToSource
-                if (left != currPos.pos) posToSource[left].erase(*sourceIt);
-                if (right != currPos.pos) posToSource[right].erase(*sourceIt);
+                if (left != currPos.pos) posToSource[left].erase(make_pair(currSource,true));
+                if (right != currPos.pos) posToSource[right].erase(make_pair(currSource,false));
             }
+
+            sourcesLeft.erase(currSource);
         }
         posToSource[currPos.pos].clear();
 
@@ -220,8 +289,16 @@ void RLZ::optimize_phrases(){
             }
         }
     }
+
+    // add all the phrases that has not changed
+    for(auto s : sourcesLeft){
+        new_phrases[hasher(*s->p)] = s->p;
+    }
+
     phrases = new_phrases;
+    cout << phrases.size() << endl;
 }
+
 
 /**
  * @brief split string on a character
@@ -265,10 +342,12 @@ void RLZ::optimize_phrases_ILP(){
 
         GRBModel model = GRBModel(env);
 
-        GRBVar xVec [csa_rev.size()];
+        // GRBVar xVec [totalLength];
+
+        vector<GRBVar> xVec(csa.size());
         vector<GRBVar> yVec;
 
-        for(int i = 0; i < csa_rev.size(); i++){
+        for(int i = 0; i < csa.size(); i++){
             string varName = "x"+to_string(i);
             GRBVar x = model.addVar(0.0, 1.0, 1.0, GRB_BINARY, varName);
             xVec[i] = x;
@@ -321,11 +400,16 @@ void RLZ::optimize_phrases_ILP(){
                 string name = yvar.get(GRB_StringAttr_VarName);
                 vector<string> splitS = split(name, '_');
                 Source * s = sourceVec[stoi(splitS[1])];
-                s->p->setStart(s->start_loc[stoi(splitS[2])]);
+                int left = s->start_loc[stoi(splitS[2])];
+                int right = left + s->length;
+
+                assert(xVec[left].get(GRB_DoubleAttr_X) == 1);
+                assert(xVec[right].get(GRB_DoubleAttr_X) == 1);
+
+                s->p->setStart(left);
                 new_phrases[hasher(*(s->p))] = s->p;
             }
         }
-
         phrases = new_phrases;
 
     }catch(GRBException e) {
@@ -446,13 +530,18 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
         }
     }
 
+    // assign to the leftmost
     vector<int> start_loc;
-    int min_loc = INT_MAX;
-    for(int i = l_res; i<=r_res; i++){
-        int pos = csa[i];
-        start_loc.push_back(pos);
-        if (pos < min_loc) min_loc = pos;
-    }
+    pair<int, int> beg_interval {l_res, r_res};
+    // int min_loc = INT_MAX;
+    // for(int i = l_res; i<=r_res; i++){
+    //     int pos = csa[i];
+    //     start_loc.push_back(pos);
+    //     if (pos < min_loc) min_loc = pos;
+    // }
+
+    //assign to the smallest
+    int min_loc = csa[l_res];
 
     // get the phrase pointer by either creating a new one or finding the existing one
     auto Pret = create_phrase(min_loc, length);
@@ -460,7 +549,7 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
 
     // create or find the corresponding source
     if (Pret.second){
-        Source * source = new Source {p, start_loc, length};
+        Source * source = new Source {p, beg_interval, start_loc, length};
         auto Sret = sources.insert(source);
     }
     
@@ -583,6 +672,7 @@ pair<Phrase *, bool> RLZ::create_phrase(int pos, int length){
         phrases[phrase_hash] = phrase;
         return make_pair(phrases[phrase_hash], true);
     } 
+    free(phrase);
     return make_pair(ret->second, false);
 }
 
@@ -663,9 +753,10 @@ string RLZ::decode_refCoord(int stringID){
 void RLZ::write_phrases(string & fname){
     ofstream out (fname);
     
-    auto it = sources.begin();
-    for(;it!=sources.end(); it++){
-        (*it)->p->print(out);
+    auto it = phrases.begin();
+    for(;it!=phrases.end(); it++){
+        it->second->print(out);
+        out << endl;
     }
     out << endl;
 }
@@ -676,5 +767,16 @@ void RLZ::write_sources(string & fname){
     auto it = sources.begin();
     for(;it!=sources.end(); it++){
         (*it)->print(out, true);
+    }
+}
+
+void RLZ::write_compString(string & fname){
+    ofstream out (fname);
+
+    for (auto strings: compressed_strings){
+        for(auto phrase : strings){
+            phrase->print(out);
+        }
+        out << endl;
     }
 }
