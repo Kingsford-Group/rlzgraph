@@ -79,12 +79,12 @@ struct Source{
 
         // prints phrase
         if (phrase){
+            if (p->start == 3499) cout << "FOUND" << endl;
             p->print(out);
             out << endl;
         }
 
         // prints begin and end intervals
-        out << "Begin: ";
         for (int loc : start_loc){
             out << loc << ", ";
         }
@@ -105,6 +105,18 @@ public:
         return hasher(to_string(p.start) + "/" + to_string(p.length)); 
     } 
 }; 
+
+/**
+ * @brief hash function for phrases pointers
+ * Hash value is computed by concatenating start and length
+ */
+class PhrasePtrHash{
+    public:
+    size_t operator()(const Phrase * & p) const{
+        hash<string> hasher;
+        return hasher(to_string(p->start) + "/" + to_string(p->length)); 
+    }
+};
 
 /**
  * @brief hash function for sources
@@ -174,7 +186,9 @@ class RLZ{
     unordered_map<char, int> newChar_toIdx;
     bool optimized = false;
     int numPhrases = 0;
+    int totalBoundaries = 0;
     int totalLength = 0;
+    bool processed=false;
     
     RLZ(string ref);
 

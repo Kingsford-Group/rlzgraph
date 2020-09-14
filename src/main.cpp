@@ -17,6 +17,9 @@ string Input_ref="";
 string Input_strings="";
 string Output_graph_name="";
 string Output_phrase_name="";
+string Output_source_name="";
+string Output_compressed_name="";
+
 int Strings_to_use = 0;
 int ref_idx=0;
 
@@ -98,6 +101,14 @@ bool parse_argument(int argc, char * argv[]){
         }        
         else if (string(argv[i])=="-p"){
             Output_phrase_name = string(argv[++i]);
+            // i++;
+        }
+        else if (string(argv[i])=="-s"){
+            Output_source_name = string(argv[++i]);
+            // i++;
+        }
+        else if (string(argv[i])=="-c"){
+            Output_compressed_name = string(argv[++i]);
             // i++;
         }
         else if (string(argv[i])=="-n"){
@@ -213,15 +224,16 @@ int main(int argc, char* argv[]){
             cout << "Done for " << i << endl;
         }
 
+
         // rlz.print_comp_string(0);
         // cout << rlz.decode(0) << endl;
 
         // verify(rlz, strings, ref_idx, id);
-        cout << "Number of phrase boundaries for smallest\t" << numPhrases(rlz) << endl;
+        cerr << numPhrases(rlz) << "\t";
         
         // rlz.print_comp_string(0);
-        string fname1 = "smallest_ecoli.phrases";
-        string fname13 = "smallest_ecoli.comp";
+        string fname1 = Output_phrase_name+"_smallest";
+        string fname13 = Output_compressed_name+"_smallest";
 
         rlz.write_phrases(fname1);
         rlz.write_compString(fname13);
@@ -230,47 +242,51 @@ int main(int argc, char* argv[]){
 
         rlz.processSources(2);
         // verify(rlz, strings, ref_idx, id);
-        cout << "Number of phrase boundaries for leftmost\t" << numPhrases(rlz) << endl;
+        cerr << numPhrases(rlz) << "\t";
         
+        //output all sources
+        cout << "Writing sources to file" << endl;
+        rlz.write_sources(Output_source_name);
+
         // rlz.print_comp_string(0);
-        string fname2 = "leftmost_ecoli.phrases";
-        string fname23 = "leftmost_ecoli.comp";
+        string fname2 = Output_phrase_name+"_leftmost";
+        string fname23 = Output_compressed_name+"_leftmost";
         rlz.write_phrases(fname2);
         rlz.write_compString(fname23);
 
         // cout << rlz.decode(0) << endl;
 
-        // rlz.processSources(0);
+//        rlz.processSources(0);
 
         
         // rlz.print_comp_string(0);
-        // string fname3 = "greedy_K12.phrases";
-        // string fname33 = "greedy_K12.comp";
+        //string fname3 = Output_phrase_name+"_greedy";
+        //string fname33 = Output_compressed_name+"_greedy";
 
-        // rlz.write_phrases(fname3);
-        // rlz.write_compString(fname33);
+        //rlz.write_phrases(fname3);
+        //rlz.write_compString(fname33);
 
 
         // cout << rlz.decode(0) << endl;
         
         // verify(rlz, strings, ref_idx, id);
-        // cout << "Number of phrase boundaries for greedy: " << numPhrases(rlz) << endl;
+//        cout << "Number of phrase boundaries for greedy: " << numPhrases(rlz) << endl;
 
         rlz.processSources(1);
 
         
-        rlz.print_comp_string(0);
-        string fname3 = "ILP_ecoli.phrases";
-        string fname33 = "ILP_ecoli.comp";
+        // rlz.print_comp_string(0);
+        string fname4 = Output_phrase_name + "_ILP";
+        string fname43 = Output_compressed_name + "_ILP";
 
-        rlz.write_phrases(fname3);
-        rlz.write_compString(fname33);
+        rlz.write_phrases(fname4);
+        rlz.write_compString(fname43);
 
 
         // cout << rlz.decode(0) << endl;
         
-        verify(rlz, strings, ref_idx, id);
-        cout << "Number of phrase boundaries for ILP: " << numPhrases(rlz) << endl;
+        //verify(rlz, strings, ref_idx, id);
+        cerr << numPhrases(rlz) << endl;
 
 
     }
