@@ -62,42 +62,68 @@ int RLZ::RLZFactor(string & to_process){
 }
 
 void RLZ::processSources(int option){
-    cout << "Total number of sources\t" << sources.size() << endl;
+    
     // for(auto * s : sources){
     //     transferSourceStarts(s);
     //     transferSourceEnds(s);
     // }
 
-    auto start_time = high_resolution_clock::now();
 
     // if the start locations are not initialized, convert csa idx to reference index
     // find the leftmost locations on the fly.
     
     vector<int> SA (csa.size(),-1);
     
-    if ((*sources.begin())->start_loc.empty()){
+    if (!processed){
+        processed = true;
+        auto start_time = high_resolution_clock::now();
+        cerr << totalBoundaries <<"\t";
+        cout << "Processing source boundaries" << endl;
         unordered_map<size_t, Phrase*> min_phrases;
         PhraseHash hasher;
+        int counter = 0;
+        int actualBoundaries = 0;
+
         for(auto * s : sources){
+
             int min_loc = INT_MAX;
-            for(int i =s->beg_interval.first; i<=s->beg_interval.second; i++){
-                int loc;
-                if (SA[i]!=-1) loc = SA[i];
-                else loc = csa[i];
-                s->start_loc.push_back(loc);
-                if (loc < min_loc){
-                    min_loc = loc;
+            int i = s->beg_interval.first;
+            int counter_i = 0;
+            if (i != -1){
+                // only get the first 1000 locations to save time.
+                while (i <= s->beg_interval.second && counter_i < 1000){
+
+                    int loc;
+                    if (SA[i]!=-1) loc = SA[i];
+                    else loc = csa[i];
+                    s->start_loc.push_back(loc);
+                    if (loc < min_loc){
+                        min_loc = loc;
+                    }
+                    i++;
+                    counter_i++;
+                    actualBoundaries++;
                 }
+            } else {
+                min_loc = s->start_loc[0];
+                actualBoundaries++;
             }
             s->p->start = min_loc;
             min_phrases[hasher(*(s->p))]=(s->p);
+
+            // if (counter % 10000 == 0)
+            //    cout << counter << endl;
+            counter += 1;
         }
         phrases = min_phrases;
+
+        cerr << actualBoundaries << "\t";
+
+        auto end_time = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
+        cerr << time_span.count() << "\t";
     }
 
-    auto end_time = high_resolution_clock::now();
-    duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
-    cout << "Time to process sources (csa access): " << time_span.count() << endl;
 
     
     switch (option){
@@ -107,7 +133,7 @@ void RLZ::processSources(int option){
             optimize_phrases();
             auto t22 = high_resolution_clock::now();
             duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
-            cout << "Time to reprocess sources (greedy): " << time_span3.count() << endl;
+            cerr << time_span3.count() << "\t";
 
             break;
         }
@@ -117,7 +143,7 @@ void RLZ::processSources(int option){
             optimize_phrases_ILP();
             auto t22 = high_resolution_clock::now();
             duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
-            cout << "Time to reprocess sources (ILP): " << time_span3.count() << endl;
+            cerr << time_span3.count() << "\t";
 
             break;
         }
@@ -131,7 +157,7 @@ void RLZ::processSources(int option){
             reset_phrases();
             auto t2 = high_resolution_clock::now();
             duration<double> time_span2 = duration_cast<duration<double>>(t2 - t1);
-            cout << "Time to reprocess sources (leftmost): " << time_span2.count() << endl;
+            cerr << time_span2.count() << "\t";
             break;
         }
     }
@@ -344,10 +370,11 @@ void RLZ::optimize_phrases_ILP(){
 
         // GRBVar xVec [totalLength];
 
-        vector<GRBVar> xVec(csa.size());
+        GRBVar * xVec = new GRBVar [totalLength+1];
+        double * xCoff = new double[totalLength+1];
         vector<GRBVar> yVec;
 
-        for(int i = 0; i < csa.size(); i++){
+        for(int i = 0; i <= totalLength; i++){
             string varName = "x"+to_string(i);
             GRBVar x = model.addVar(0.0, 1.0, 1.0, GRB_BINARY, varName);
             xVec[i] = x;
@@ -359,8 +386,8 @@ void RLZ::optimize_phrases_ILP(){
         for(Source * s : sources){
             sourceVec.push_back(s);
             sourceNum += s->start_loc.size();
-            GRBVar ySource [s->start_loc.size()];
-            double yCoff [s->start_loc.size()];
+            GRBVar * ySource = new GRBVar [s->start_loc.size()];
+            double * yCoff  = new double [s->start_loc.size()];
             for (int i =0; i < s->start_loc.size(); i++){
                 string varName = "y_"+to_string(sourceId)+"_"+to_string(i); 
 
@@ -374,7 +401,7 @@ void RLZ::optimize_phrases_ILP(){
                 model.addConstr(y >= x1 + x2 - 1, constrName0);
                 model.addConstr(y <= x1, constrName1);
                 model.addConstr(y <= x2, constrName2);
-
+                
                 yVec.push_back(y);
                 ySource[i] = y;
                 yCoff[i] = 1;
@@ -386,6 +413,9 @@ void RLZ::optimize_phrases_ILP(){
             string constrName = "c"+to_string(sourceId);
             model.addConstr(sourceExp, GRB_GREATER_EQUAL, 1, constrName);
             sourceId++;
+
+            delete[] ySource;
+            delete[] yCoff;
         }
 
         model.optimize();
@@ -395,22 +425,48 @@ void RLZ::optimize_phrases_ILP(){
         unordered_map<size_t, Phrase*> new_phrases;
         PhraseHash hasher;
 
+        unordered_set<int> source_check; 
+        
         for (GRBVar yvar : yVec){
             if (yvar.get(GRB_DoubleAttr_X) == 1){
                 string name = yvar.get(GRB_StringAttr_VarName);
                 vector<string> splitS = split(name, '_');
+
                 Source * s = sourceVec[stoi(splitS[1])];
+                
+                // check if the source has already been processed 
+                auto check = source_check.find(stoi(splitS[1]));
+                if (check != source_check.end()){
+                    continue;
+                } else {
+                    source_check.insert(stoi(splitS[1]));
+                }
+
                 int left = s->start_loc[stoi(splitS[2])];
                 int right = left + s->length;
-
-                assert(xVec[left].get(GRB_DoubleAttr_X) == 1);
-                assert(xVec[right].get(GRB_DoubleAttr_X) == 1);
-
+                
                 s->p->setStart(left);
-                new_phrases[hasher(*(s->p))] = s->p;
+                
+                // add the updated phrase to the new phrase set
+                auto find = new_phrases.find(hasher(*(s->p)));
+                if (find == new_phrases.end()){
+                    new_phrases[hasher(*(s->p))] = s->p;
+                } else {
+                    cout << s->p->start << endl;
+                }
             }
         }
         phrases = new_phrases;
+        int count = 0;
+        for( int i = 0; i <= totalLength; i++){
+            GRBVar xvar = xVec[i];
+            if (xvar.get(GRB_DoubleAttr_X) == 1){
+                count ++;
+            }
+        }
+        cout << count << endl;
+
+
 
     }catch(GRBException e) {
         cout << "Error code = " << e.getErrorCode() << endl;
@@ -486,6 +542,15 @@ Phrase* RLZ::check_alphabet(string::iterator & strIt){
         auto ret_cp = create_phrase(idx, 1);
         Phrase * p = ret_cp.first;
         strIt++;
+
+        vector<int> start_loc{idx};
+
+        // create or find the corresponding source
+        if (ret_cp.second){
+            Source * source = new Source {p, make_pair(-1,-1), start_loc,1};
+            auto Sret = sources.insert(source);
+            totalBoundaries += 1; 
+        }
         return p;
     }
 
@@ -551,93 +616,12 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     if (Pret.second){
         Source * source = new Source {p, beg_interval, start_loc, length};
         auto Sret = sources.insert(source);
+        totalBoundaries += source->beg_interval.second - source->beg_interval.first +1; 
     }
     
     return p;
 
-
-    // // whether the last character is found or the last character is the end of the string
-    // if (r < l){
-    //     strIt --;
-    //     length -= 2;
-    // } else{
-    //     l_res = l;
-    //     r_res = r;
-    //     length -= 1;
-    // }
-
-    // cerr << "ref: " << extract(csa, csa[l_res]-1, csa[l_res]) << endl;
-    // cerr << "str: " ;
-    // auto sss = strStart;
-    // for(int i = 0; i < length; i++){
-    //     cerr << *(sss++) ;
-    // }
-    // cerr << endl;
-
-    // Find the start intervals in csa_rev
-    // size_type l_start = 0;
-    // size_type r_start = csa_rev.size() -1 ;
-    // string::iterator strEnd = strIt;
-    // do{ 
-    //     strEnd -- ;
-    //     backward_search(csa_rev, l_start, r_start, (*strEnd), l_start, r_start);
-    // }while(strEnd != strStart);
-    // pair<int, int> beg_interval = make_pair(l_start, r_start);
-
-    // auto ret_cp= create_phrase(l_start, length);
-    // Phrase * p = ret_cp.first;
-
-    // // this is a newly inserted phrase
-    // if (ret_cp.second == true){
-    //     // end interval is one more LF operation
-    //     vector<int> end_interval; 
-    //     for (int i=0; i < csa.sigma;i++){
-    //         size_type new_l = 0;
-    //         size_type new_r = 0;
-
-    //         backward_search(csa, l_res, r_res, csa.comp2char[i], new_l, new_r);
-
-    //         if (int(new_l) <= int(new_r)){
-    //             for(int i = new_l; i <= new_r; i++){
-    //                 int e ;
-    //                 if (csa[i] == csa.size() - 1){
-    //                     e = csa_rev.isa[csa.size() - 1];
-    //                 }
-    //                 else{
-    //                     e = csa_rev.isa[csa.size() - 2 - csa[i]];
-    //                 }
-    //                 end_interval.push_back(e);
-    //             }
-    //         }
-    //     }
-
-    //     sort(end_interval.begin(), end_interval.end());
-    //     // cerr << "------- " << length << " " << (strIt != end) << endl;
-    //     // cerr << "ref last: " << extract(csa, csa[l_res]-1, csa[l_res]) << endl;
-    //     // cerr << "str next: " << *strIt << endl;
-    //     // for (int b = beg_interval.first; b <= beg_interval.second; b++){
-    //     //     cerr << extract(csa_rev, csa_rev[b]+length, csa_rev[b]+length) << " ";
-    //     //     cerr << csa_rev[b]+length << ", ";
-    //     // }
-    //     // cerr << endl;
-    //     // for (int e : end_interval){
-    //     //     cerr << extract(csa_rev, csa_rev[e], csa_rev[e]) << " ";
-    //     //     cerr << csa_rev[e] << ", ";
-    //     // }
-    //     // cerr << endl;
-
-    //     // for(int i =0 ; i<end_interval.size(); i++){
-    //     //     assert(csa_rev[end_interval[i]] == csa_rev[beg_interval.first+i]+length);
-    //     // }
-
-    //     Source * source = new Source {p, beg_interval, end_interval, length-1};
-    //     auto ret = sources.insert(source);
-
-    // }
-
-    // return p;
 }
-
 
 void RLZ::print_comp_string(int stringID){
     cout << "Printing compressed strings" << endl;
@@ -722,34 +706,6 @@ string RLZ::decode_refCoord(int stringID){
     }
     return toReturn;
 }
-
-// void RLZ::transferSourceEnds(Source * s){
-//     vector<int> new_endInterval;
-//     for (int i : s->end_interval){
-//         int new_end = 0;
-//         // cerr << i << " --> " ;
-//         if (csa[i] == csa.size()-1) {
-//             new_end = i;
-//         }else{
-//             new_end = csa_rev.isa[csa.size() - 2 - csa[i]];
-//         }
-//         // cerr << new_end << endl; 
-//         new_endInterval.push_back(new_end);
-//     }
-//     sort(new_endInterval.begin(), new_endInterval.end());
-//     s->end_interval = new_endInterval;
-// }
-
-// void RLZ::transferSourceStarts(Source * s){
-//     Phrase * p = s->p;
-//     string sub = extract(csa, csa[p->start], csa[p->start] + p->length - 1);
-//     size_type l = 0; 
-//     size_type r = csa_rev.size()-1;
-//     reverse(sub.begin(), sub.end());
-//     backward_search(csa_rev, l, r, sub.begin(), sub.end(), l, r );   // search for the pattern in the reversed reversed BWT.
-//     s->beg_interval = make_pair(l,r);
-// }
-
 void RLZ::write_phrases(string & fname){
     ofstream out (fname);
     
@@ -758,7 +714,6 @@ void RLZ::write_phrases(string & fname){
         it->second->print(out);
         out << endl;
     }
-    out << endl;
 }
 
 void RLZ::write_sources(string & fname){
