@@ -14,7 +14,6 @@
 
 #include "RLZ.hpp"
 #include <sdsl/bit_vectors.hpp>
-#include <sdsl/int_vectors.hpp>
 #include <unordered_set>
 
 
@@ -25,7 +24,7 @@ class RLZGraph{
 
     csa_wt<> csa;                   // stores reference 
 
-    vector<unsigned int > adjMatrix; // stores graph structure
+    vector< sd_vector<> > adjMatrix; // stores graph structure
     int nodeNum;
     int edgeNum;
 
@@ -54,14 +53,13 @@ class RLZGraph{
      * 
      * @param fname input filename
      */
-    RLZGrraph(string & fname);
+    RLZGraph(string & fname);
 
     /**
      * @brief write all of the graph components onto disk
      */
     void write_complete_graph();
 };
-
 
 
 #endif
