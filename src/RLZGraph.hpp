@@ -9,27 +9,37 @@
  * 
  */
 
-#ifndef __RLZ_H__
-#define __RLZ_H__
+#ifndef __RLZGRAPH_H__
+#define __RLZGRAPH_H__
 
 #include "RLZ.hpp"
 #include <sdsl/bit_vectors.hpp>
 #include <unordered_set>
+#include <fstream>
 
 
 using namespace std;
 using namespace sdsl;
 
-class RLZGraph{
+struct Phrase;
 
-    csa_wt<> csa;                   // stores reference 
+class RLZGraph{
+    public:
+    RLZ * rlz;    // stores factorization
 
     vector< sd_vector<> > adjMatrix; // stores graph structure
     int nodeNum;
     int edgeNum;
 
-    vector<Phrase*> phrases;         // unique phrases ordered by their index
-    vector<int_vector> paths;       // stores paths of each compressed string by phrase indices
+    vector<int> NodeToPos;          // maps node id to position in reference
+    vector<int> nodeMap;            // maps position to node
+
+
+    // vector<Phrase*> phrases;         // unique phrases ordered by their index
+    // vector<Phrase*> paths;       // stores paths of each compressed string by phrase indices
+
+    RLZGraph(){
+    }
 
     /**
      * @brief Construct a new RLZGraph object from RLZ factorization
@@ -53,13 +63,30 @@ class RLZGraph{
      * 
      * @param fname input filename
      */
-    RLZGraph(string & fname);
+    RLZGraph(ifstream & in);
+
+    void set_edges(ifstream & in);
+
+    /**
+     * @brief Print all the edges in the adjacency matrix
+     */
+    void print_edges(ostream & out);
+
+    /**
+     * @brief Verify that all phrase adjacencies are represented
+     */
+    void verify();
 
     /**
      * @brief write all of the graph components onto disk
      */
-    void write_complete_graph();
+    void write_complete_graph(ofstream & out);
+
+    private:
+    void add_edge_const(vector<bit_vector> & tmpAdj, int idx1, int idx2);
 };
+
+
 
 
 #endif

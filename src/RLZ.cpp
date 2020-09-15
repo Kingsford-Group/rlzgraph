@@ -79,7 +79,7 @@ void RLZ::processSources(int option){
         auto start_time = high_resolution_clock::now();
         cerr << totalBoundaries <<"\t";
         cout << "Processing source boundaries" << endl;
-        unordered_map<size_t, Phrase*> min_phrases;
+        unordered_set<Phrase*, PhrasePtrHash> min_phrases;
         PhraseHash hasher;
         int counter = 0;
         int actualBoundaries = 0;
@@ -109,7 +109,8 @@ void RLZ::processSources(int option){
                 actualBoundaries++;
             }
             s->p->start = min_loc;
-            min_phrases[hasher(*(s->p))]=(s->p);
+            // min_phrases[hasher(*(s->p))]=(s->p);
+            min_phrases.insert(s->p);
 
             // if (counter % 10000 == 0)
             //    cout << counter << endl;
@@ -171,12 +172,12 @@ void RLZ::optimize_phrases(){
     // print_sources();
 
     // stores weighted positions. weight is number of source boundaries
-    vector<WeightedPos> weightedPoses(csa.size());
+    vector<WeightedPos> weightedPoses(totalLength+1);
 
     // stores set of sources corresponding a particular position.
     // the first in pair stores the source pointer
     // the second in pair indicates whether this position is a left (1) or a right (0) boundary.
-    vector< unordered_set<pair<Source *, bool>, pair_hash> > posToSource(csa.size());
+    vector< unordered_set<pair<Source *, bool>, pair_hash> > posToSource(totalLength+1);
     
     // stores status of each source
     // vector<bool> sourceStatus(sources.size());
@@ -185,7 +186,8 @@ void RLZ::optimize_phrases(){
     unordered_set<Source*, SourceHash> sourcesLeft(sources);
     
     // stores updated phrases
-    unordered_map<size_t, Phrase*> new_phrases;
+    // unordered_map<size_t, Phrase*> new_phrases;
+    unordered_set<Phrase*,PhrasePtrHash> new_phrases;
     PhraseHash hasher;
 
     // int sourceCounter = 0;
@@ -253,7 +255,7 @@ void RLZ::optimize_phrases(){
     while((weightedPoses_Set.size() > 0) && ((*--weightedPoses_Set.end())->weight > 1)){
         
         // positions that need to be updated
-        vector<int> storedPos(csa.size()-1);
+        vector<int> storedPos(totalLength);
     
         // remove the largest element in the set
         auto it = --weightedPoses_Set.end();
@@ -272,10 +274,12 @@ void RLZ::optimize_phrases(){
             // update corresponding phrase
             if (indicator){
                 currSource->p->setStart(currPos.pos);
-                new_phrases[hasher(*currSource->p)] = currSource->p;
+                // new_phrases[hasher(*currSource->p)] = currSource->p;
+                new_phrases.insert(currSource->p);
             } else {
                 currSource->p->setStart(currPos.pos - currSource->length);
-                new_phrases[hasher(*currSource->p)] = currSource->p;
+                // new_phrases[hasher(*currSource->p)] = currSource->p;
+                new_phrases.insert(currSource->p);
             }
 
             // remove all other occurrences
@@ -318,7 +322,8 @@ void RLZ::optimize_phrases(){
 
     // add all the phrases that has not changed
     for(auto s : sourcesLeft){
-        new_phrases[hasher(*s->p)] = s->p;
+        // new_phrases[hasher(*s->p)] = s->p;
+        new_phrases.insert(s->p);
     }
 
     phrases = new_phrases;
@@ -422,7 +427,8 @@ void RLZ::optimize_phrases_ILP(){
 
         cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
 
-        unordered_map<size_t, Phrase*> new_phrases;
+        // unordered_map<size_t, Phrase*> new_phrases;
+        unordered_set<Phrase*, PhrasePtrHash> new_phrases;
         PhraseHash hasher;
 
         unordered_set<int> source_check; 
@@ -448,12 +454,13 @@ void RLZ::optimize_phrases_ILP(){
                 s->p->setStart(left);
                 
                 // add the updated phrase to the new phrase set
-                auto find = new_phrases.find(hasher(*(s->p)));
-                if (find == new_phrases.end()){
-                    new_phrases[hasher(*(s->p))] = s->p;
-                } else {
-                    cout << s->p->start << endl;
-                }
+                // auto find = new_phrases.find(hasher(*(s->p)));
+                // if (find == new_phrases.end()){
+                //     new_phrases[hasher(*(s->p))] = s->p;
+                // } else {
+                //     cout << s->p->start << endl;
+                // }
+                new_phrases.insert(s->p);
             }
         }
         phrases = new_phrases;
@@ -478,7 +485,8 @@ void RLZ::optimize_phrases_ILP(){
 
 void RLZ::reset_phrases(){
     PhraseHash hasher;
-    unordered_map<size_t, Phrase*> new_phrases;
+    // unordered_map<size_t, Phrase*> new_phrases;
+    unordered_set<Phrase*, PhrasePtrHash> new_phrases;
     for(auto * s : sources){
         Phrase * p = s->p;
 
@@ -488,7 +496,8 @@ void RLZ::reset_phrases(){
         }
         p->setStart(min_loc);
 
-        new_phrases[hasher(*p)] = p;
+        // new_phrases[hasher(*p)] = p;
+        new_phrases.insert(p);
     }
     phrases = new_phrases;
 }
@@ -645,19 +654,20 @@ void RLZ::print_comp_string(int stringID){
 pair<Phrase *, bool> RLZ::create_phrase(int pos, int length){
     Phrase * phrase = new Phrase{pos, length};
 
-    PhraseHash hasher;
-    auto phrase_hash = hasher(*phrase);
-    auto ret = phrases.find(phrase_hash);
+    // PhraseHash hasher;
+    // auto phrase_hash = hasher(*phrase);
+    auto ret = phrases.find(phrase);
 
     // if the phrase is not there, add phrase to hashmap
     // otherwise, create return the already existed phrase.
     if (ret == phrases.end()){
 
-        phrases[phrase_hash] = phrase;
-        return make_pair(phrases[phrase_hash], true);
+        // phrases[phrase_hash] = phrase;
+        phrases.insert(phrase);
+        return make_pair(phrase, true);
     } 
     free(phrase);
-    return make_pair(ret->second, false);
+    return make_pair(*ret, false);
 }
 
 void RLZ::print_sources(){
@@ -670,7 +680,7 @@ void RLZ::print_sources(){
 void RLZ::print_phrases(){
     cout << "Printing phrases." << endl;
     for(auto p : phrases){
-        p.second->print(cout);
+        p->print(cout);
     }
     cout << endl;
 }
@@ -711,7 +721,7 @@ void RLZ::write_phrases(string & fname){
     
     auto it = phrases.begin();
     for(;it!=phrases.end(); it++){
-        it->second->print(out);
+        (*it)->print(out);
         out << endl;
     }
 }

@@ -112,7 +112,7 @@ public:
  */
 class PhrasePtrHash{
     public:
-    size_t operator()(const Phrase * & p) const{
+    size_t operator()(const Phrase * p) const{
         hash<string> hasher;
         return hasher(to_string(p->start) + "/" + to_string(p->length)); 
     }
@@ -180,7 +180,8 @@ class RLZ{
     csa_wt<> csa;       // the compressed suffix array to store the *reversed* reference
     csa_wt<> csa_rev;   // the compressed suffix array to store the *actual* reference
     vector<vector<Phrase *> > compressed_strings;   
-    unordered_map<size_t, Phrase*> phrases;
+    // unordered_map<size_t, Phrase*> phrases;
+    unordered_set<Phrase*, PhrasePtrHash> phrases;
     unordered_set<Source*, SourceHash> sources;
     unordered_map<int, char> newChar_toChar;
     unordered_map<char, int> newChar_toIdx;
