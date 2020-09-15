@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include "RLZ.hpp"
+#include "RLZGraph.hpp"
 
 #include <ctime>
 #include <ratio>
@@ -19,6 +20,11 @@ string Output_graph_name="";
 string Output_phrase_name="";
 string Output_source_name="";
 string Output_compressed_name="";
+
+bool writePhrase = false;
+bool writeSource = false;
+bool writeCompressed = false;
+bool writeGraph = false;
 
 int Strings_to_use = 0;
 int ref_idx=0;
@@ -86,34 +92,31 @@ bool parse_argument(int argc, char * argv[]){
 		}
         else if (string(argv[i])=="-r"){
             Input_ref = string(argv[++i]);
-            // i++;
         }
         else if (string(argv[i])=="-i"){
             Input_strings = string(argv[++i]);
-            // i++;
         }
         else if (string(argv[i])=="-ii"){
             ref_idx = stoi(argv[++i]);
         }
         else if (string(argv[i])=="-g"){
             Output_graph_name = string(argv[++i]);
-            // i++;
+            writeGraph = true;
         }        
         else if (string(argv[i])=="-p"){
             Output_phrase_name = string(argv[++i]);
-            // i++;
+            writePhrase = true;
         }
         else if (string(argv[i])=="-s"){
             Output_source_name = string(argv[++i]);
-            // i++;
+            writeSource = true;
         }
         else if (string(argv[i])=="-c"){
             Output_compressed_name = string(argv[++i]);
-            // i++;
+            writeCompressed = true;
         }
         else if (string(argv[i])=="-n"){
             Strings_to_use = stoi(argv[++i]);
-            // i++;
         }
         else{
             cerr << "Unknown argument: " << string(argv[i]) << endl;\
@@ -148,23 +151,51 @@ char revCompHelper(char c){
     exit(1);
 }
 
-int numPhrases(RLZ & rlz){
+/**
+ * @brief Calculate the number of unique phrase boundaries
+ * 
+ * @param rlz 
+ * @return int 
+ */
+int numBoundaries(RLZ & rlz){
     unordered_set<int> positions;
-    for(auto pair : rlz.phrases){
-        if (pair.second->start > rlz.csa_rev.size() - 1){
-            positions.insert(pair.second->start);
-            positions.insert(pair.second->start+1);
+    for(auto p : rlz.phrases){
+        if (p->start > rlz.csa_rev.size() - 1){
+            positions.insert(p->start);
+            positions.insert(p->start+1);
             continue;
         }
-        if (positions.find(pair.second->start) == positions.end())
-            positions.insert(pair.second->start);
-        if (positions.find(pair.second->start+pair.second->length) == positions.end())
-            positions.insert(pair.second->start+pair.second->length);
+        if (positions.find(p->start) == positions.end())
+            positions.insert(p->start);
+        if (positions.find(p->start+p->length) == positions.end())
+            positions.insert(p->start+p->length);
     }
-        // cerr << "Number of unique positions (with opt): " << positions.size() << endl;
     return positions.size();
 }
 
+/**
+ * @brief Calculate the number of phrases in compressed strings
+ * 
+ * @param rlz 
+ * @return int 
+ */
+int numPhrases(RLZ & rlz){
+    int counter = 0;
+    for (auto compString : rlz.compressed_strings){
+        counter += compString.size();
+    }
+    return counter;
+}
+
+
+/**
+ * @brief Verify rlz factorization
+ * 
+ * @param rlz The rlz factorization
+ * @param strings Actual strings
+ * @param ref_idx the index of the reference used
+ * @param id Whether the reference is provided
+ */
 void verify(RLZ & rlz, vector<string> strings, int ref_idx, int id){
     int j = 0;
     for (int i=0;i<strings.size();i++){
@@ -176,6 +207,12 @@ void verify(RLZ & rlz, vector<string> strings, int ref_idx, int id){
     }
 }
 
+/**
+ * @brief Produce the reverse complement of input string
+ * 
+ * @param toreverse input string
+ * @return string reverse complement
+ */
 string reverseComp(string toreverse){
     string s ="";
     for (int i=0;i<toreverse.length();i++){
@@ -191,13 +228,13 @@ int main(int argc, char* argv[]){
 
     if (success){
         
-        // read in fasta files
+        /* ---- Read Input Files -----------------------------------------------------------------------------------------*/
+
         string ref;
         vector<string> strings = readFASTA(Input_strings, Strings_to_use);
         int start = 0;
         int id = 0;
 
-        // 
         if (Input_ref!=""){
             vector<string> refv = readFASTA(Input_ref, 0);
             ref = refv[0]; 
@@ -206,17 +243,24 @@ int main(int argc, char* argv[]){
             id = 1;
         }
         
+        /* ---- Construct Reference String -------------------------------------------------------------------------------*/
+
         ref = reverseComp(ref) + '#' + ref;
+
+        reverse(ref.begin(), ref.end());
 
         cout << "Finished reading files." << endl;
         cout << "Length of reference: " << ref.length() << endl;
 
-        reverse(ref.begin(), ref.end());
+        /* ---- Build Reference Compressed Suffix Array ------------------------------------------------------------------*/
 
         RLZ rlz(ref);
         cout << "Built the initial SA" << endl;
 
         cout << "SA size: "<< rlz.csa.size() << endl;
+
+        /* ----- Begin RLZ Factorization (default = smallest ) ----------------------------------------------------------------------------------------*/
+        // sources are not set at this stage
 
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
@@ -224,70 +268,112 @@ int main(int argc, char* argv[]){
             cout << "Done for " << i << endl;
         }
 
-
-        // rlz.print_comp_string(0);
-        // cout << rlz.decode(0) << endl;
-
         // verify(rlz, strings, ref_idx, id);
-        cerr << numPhrases(rlz) << "\t";
+        cerr << numBoundaries(rlz) << "\t";
         
         // rlz.print_comp_string(0);
-        string fname1 = Output_phrase_name+"_smallest";
-        string fname13 = Output_compressed_name+"_smallest";
+        if (writePhrase){
+            string fname1 = Output_phrase_name+"_smallest";
+            rlz.write_phrases(fname1);
+        }
+        if (writeCompressed){
+            string fname13 = Output_compressed_name+"_smallest";
+            rlz.write_compString(fname13);
+        }
 
-        rlz.write_phrases(fname1);
-        rlz.write_compString(fname13);
-
-        // cout << rlz.decode(0) << endl;
+        /* ---- Reset Phrase Boundaries (leftmost) -----------------------------------------------------------------------------------------*/
 
         rlz.processSources(2);
         // verify(rlz, strings, ref_idx, id);
-        cerr << numPhrases(rlz) << "\t";
+        cerr << numBoundaries(rlz) << "\t";
         
         //output all sources
-        cout << "Writing sources to file" << endl;
-        rlz.write_sources(Output_source_name);
+        if (writeSource){
+            cout << "Writing sources to file" << endl;
+            rlz.write_sources(Output_source_name);
+        }
 
-        // rlz.print_comp_string(0);
-        string fname2 = Output_phrase_name+"_leftmost";
-        string fname23 = Output_compressed_name+"_leftmost";
-        rlz.write_phrases(fname2);
-        rlz.write_compString(fname23);
+        if (writePhrase){
+            string fname2 = Output_phrase_name+"_leftmost";
+            rlz.write_phrases(fname2);
+        }
 
-        // cout << rlz.decode(0) << endl;
+        if (writeCompressed){
+            string fname23 = Output_compressed_name+"_leftmost";
+            rlz.write_compString(fname23);
+        }
 
-//        rlz.processSources(0);
-
-        
-        // rlz.print_comp_string(0);
-        //string fname3 = Output_phrase_name+"_greedy";
-        //string fname33 = Output_compressed_name+"_greedy";
-
-        //rlz.write_phrases(fname3);
-        //rlz.write_compString(fname33);
+        /* ---- Reset Phrase Boundaries (greedy) -----------------------------------------------------------------------------------------*/
 
 
-        // cout << rlz.decode(0) << endl;
-        
-        // verify(rlz, strings, ref_idx, id);
-//        cout << "Number of phrase boundaries for greedy: " << numPhrases(rlz) << endl;
+        // rlz.processSources(0);
+        // // verify(rlz, strings, ref_idx, id);
+        // cerr << numBoundaries(rlz) << "\t";
+
+        // if (writePhrase){
+        //     string fname3 = Output_phrase_name+"_greedy";
+        //     rlz.write_phrases(fname3);
+        // }
+
+        // if (writeCompressed){
+        //     string fname33 = Output_compressed_name+"_greedy";
+        //     rlz.write_compString(fname33);
+        // }
+
+        /* ---- Reset Phrase Boiundaries (ILP) ----------------------------------------------------------------------------------------*/
 
         rlz.processSources(1);
+        // verify(rlz, strings, ref_idx, id);
+        cerr << numBoundaries(rlz) << "\t";
+        
+        if (writePhrase){
+            string fname4 = Output_phrase_name + "_ILP";
+            rlz.write_phrases(fname4);
+        }
+        if (writeCompressed){
+            string fname43 = Output_compressed_name + "_ILP";
+            rlz.write_compString(fname43);
+        }
+        
+        /* ======================================================================================================================= */
+        /* ---- Construct RLZGraph -----------------------------------------------------------------------------------------*/
+
+        cout << " ================================================= " << endl;
+        cout << "    Constructing graph" << endl;
+
+        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
+        auto start_time = high_resolution_clock::now();
+        RLZGraph g (rlz);
+        auto end_time = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
+        cerr << time_span.count() << endl;
+
+        cout << "----- printing all edges -----" << endl;
+        // g.print_edges(cout);
+        g.print_edges(cout);
+
+        cout << "Number of nodes: " << g.nodeNum << endl;
+        cout << "Number of edges: " << g.edgeNum << endl;
+        cout << "Number of phrases: " << numPhrases(rlz) << endl;
+
+        g.verify();
 
         
-        // rlz.print_comp_string(0);
-        string fname4 = Output_phrase_name + "_ILP";
-        string fname43 = Output_compressed_name + "_ILP";
+        if (writeGraph)
+        {
+            cout << "writing graph to file" << endl;
+            ofstream out (Output_graph_name);
+            g.write_complete_graph(out);
+        }
 
-        rlz.write_phrases(fname4);
-        rlz.write_compString(fname43);
+        // cout << "reading from file" << endl;
+        // {
+        //     ifstream in ("data.sdsl");
+        //     g.set_edges(in);
+        // }
 
-
-        // cout << rlz.decode(0) << endl;
-        
-        //verify(rlz, strings, ref_idx, id);
-        cerr << numPhrases(rlz) << endl;
-
+        // g.print_edges(cout);
+        // g.verify();
 
     }
     else {
