@@ -119,6 +119,20 @@ class PhrasePtrHash{
 };
 
 /**
+ * @brief Compare phrases by start and length
+ */
+class PhrasePtrEqual{
+    public:
+    bool operator()(const Phrase * p1, const Phrase * p2) const {
+        if (p1->start == p2->start && p1->length == p2->length){
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+/**
  * @brief hash function for sources
  * Hash value is the pointer location of corresponding phrase
  */
@@ -129,6 +143,38 @@ public:
     { 
         return size_t(s->p);
     } 
+};
+
+
+/**
+ * @brief hash function for sources
+ * Hash value is the pointer location of corresponding phrase
+ */
+class SourceEqual{
+public: 
+    // id is returned as hash function 
+    bool operator()(const Source * s1, const Source * s2) const
+    { 
+        if (s1->p == s2->p){
+            return true;
+        }
+        else return false;
+    } 
+};
+
+/**
+ * @brief Compare sources
+ * Source A < Source B if its SA interval begins or ends before B.
+ */
+class SourceMore{
+    public:
+    bool operator()(const Source * s1, const Source *s2) const{
+        if (s1->beg_interval.first > s2->beg_interval.first){
+            return true;
+        } else if (s1->beg_interval.first == s2->beg_interval.first){
+            return s1->beg_interval.second > s2->beg_interval.second;
+        } else return false;
+    }
 };
 
 /**
@@ -181,8 +227,8 @@ class RLZ{
     csa_wt<> csa_rev;   // the compressed suffix array to store the *actual* reference
     vector<vector<Phrase *> > compressed_strings;   
     // unordered_map<size_t, Phrase*> phrases;
-    unordered_set<Phrase*, PhrasePtrHash> phrases;
-    unordered_set<Source*, SourceHash> sources;
+    unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> phrases;
+    unordered_set<Source*, SourceHash, SourceEqual> sources;
     unordered_map<int, char> newChar_toChar;
     unordered_map<char, int> newChar_toIdx;
     bool optimized = false;
@@ -273,6 +319,13 @@ class RLZ{
      */
     void processSources(int option);
     
+    /**
+     * @brief transfer source boundaries from SA intervals to individual positions in the reference coordinate
+     * 
+     * @return total number of boundaries 
+     */
+    int transferSources();
+
     /**
      * @brief Transfer all end intervals of each source to the reversed reversed BWT using iSA
      * 

@@ -17,22 +17,56 @@
 #include <unordered_set>
 #include <fstream>
 
+#include <ctime>
+#include <ratio>
+#include <chrono>
 
+using namespace std::chrono;
 using namespace std;
 using namespace sdsl;
 
 struct Phrase;
 
+struct RLZNode{
+    string seq;
+    int refIdx;
+    int nodeIdx;
+
+    void print(ostream & out){
+        out << refIdx << "," << nodeIdx << "," << seq << endl;
+    }
+};
+
+struct RLZEdge{
+    RLZNode * first;
+    RLZNode * second;
+
+    void print(ostream & out){
+        out << first->nodeIdx << ";" << second->nodeIdx << endl;
+    }
+};
+
+struct pairEdgeHash{
+    size_t operator()(const pair<int, int> & pair) const {
+        hash<string> hasher;
+        return hasher(to_string(pair.first)+"/"+to_string(pair.second));
+    }
+};
+
 class RLZGraph{
     public:
     RLZ * rlz;    // stores factorization
 
-    vector< sd_vector<> > adjMatrix; // stores graph structure
-    int nodeNum;
-    int edgeNum;
+    // vector< sd_vector<> > adjMatrix; // stores graph structure
+    // int nodeNum;
+    // int edgeNum;
 
-    vector<int> NodeToPos;          // maps node id to position in reference
-    vector<int> nodeMap;            // maps position to node
+    unordered_map<int, RLZNode*> idx_to_node;
+    vector<RLZEdge*> Edges;
+    vector<RLZNode*> Nodes;
+
+    // vector<int> NodeToPos;          // maps node id to position in reference
+    // vector<int> nodeMap;            // maps position to node
 
 
     // vector<Phrase*> phrases;         // unique phrases ordered by their index
@@ -65,12 +99,25 @@ class RLZGraph{
      */
     RLZGraph(ifstream & in);
 
+    int get_edgeNum(){
+        return Edges.size();
+    }
+
+    int get_nodeNum(){
+        return Nodes.size();
+    }
+
     void set_edges(ifstream & in);
 
     /**
-     * @brief Print all the edges in the adjacency matrix
+     * @brief Print all the edges
      */
     void print_edges(ostream & out);
+
+    /**
+     * @brief Print all the nodes
+     */
+    void print_nodes(ostream & out);
 
     /**
      * @brief Verify that all phrase adjacencies are represented
