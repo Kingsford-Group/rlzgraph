@@ -41,6 +41,43 @@ void print_help(){
 
 void print_version(){}
 
+void process_mem_usage(double& vm_usage, double& resident_set)
+{
+   using std::ios_base;
+   using std::ifstream;
+   using std::string;
+
+   vm_usage     = 0.0;
+   resident_set = 0.0;
+
+   // 'file' stat seems to give the most reliable results
+   //
+   ifstream stat_stream("/proc/self/stat",ios_base::in);
+
+   // dummy vars for leading entries in stat that we don't care about
+   //
+   string pid, comm, state, ppid, pgrp, session, tty_nr;
+   string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+   string utime, stime, cutime, cstime, priority, nice;
+   string O, itrealvalue, starttime;
+
+   // the two fields we want
+   //
+   unsigned long vsize;
+   long rss;
+
+   stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
+               >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
+               >> utime >> stime >> cutime >> cstime >> priority >> nice
+               >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care about the rest
+
+   stat_stream.close();
+
+   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+   vm_usage     = vsize / 1024.0;
+   resident_set = rss * page_size_kb;
+}
+
 vector<string> readFASTA(string filename, int num_seq){
     fstream input(filename);
     if (!input.good()) {
@@ -198,9 +235,9 @@ int numPhrases(RLZ & rlz){
  */
 void verify(RLZ & rlz, vector<string> strings, int ref_idx, int id){
     int j = 0;
+    cout << "Verifying" << endl;
     for (int i=0;i<strings.size();i++){
         if (id != 0 && ref_idx == i) continue;    // does not add ref string
-        cout << "Verifying " << i << endl;
         string test = rlz.decode(j);
         assert(test.compare(strings[i])==0);
         j++;
@@ -265,10 +302,10 @@ int main(int argc, char* argv[]){
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
             rlz.RLZFactor(strings[i]);
-            cout << "Done for " << i << endl;
+            // cout << "Done for " << i << endl;
         }
 
-        // verify(rlz, strings, ref_idx, id);
+        verify(rlz, strings, ref_idx, id);
         cerr << numBoundaries(rlz) << "\t";
         
         // rlz.print_comp_string(0);
@@ -281,10 +318,23 @@ int main(int argc, char* argv[]){
             rlz.write_compString(fname13);
         }
 
+        
+        cout << " ================================================= " << endl;
+        cout << "    Constructing graph" << endl;
+
+        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
+        // cout << extract(rlz.csa, 0,1) << endl;
+        // auto start_time = high_resolution_clock::now();
+        RLZGraph g2 (rlz);
+
+        cout << "Number of nodes (smallest): " << g2.get_nodeNum() << endl;
+        cout << "Number of edges (smallest): " << g2.get_edgeNum() << endl;
+        cout << "Number of phrases (smallest): " << numPhrases(rlz) << endl;
+
         /* ---- Reset Phrase Boundaries (leftmost) -----------------------------------------------------------------------------------------*/
 
         rlz.processSources(2);
-        // verify(rlz, strings, ref_idx, id);
+        verify(rlz, strings, ref_idx, id);
         cerr << numBoundaries(rlz) << "\t";
         
         //output all sources
@@ -302,6 +352,18 @@ int main(int argc, char* argv[]){
             string fname23 = Output_compressed_name+"_leftmost";
             rlz.write_compString(fname23);
         }
+
+        cout << " ================================================= " << endl;
+        cout << "    Constructing graph" << endl;
+
+        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
+        // cout << extract(rlz.csa, 0,1) << endl;
+        // auto start_time = high_resolution_clock::now();
+        RLZGraph g1 (rlz);
+
+        cout << "Number of nodes (leftmost): " << g1.get_nodeNum() << endl;
+        cout << "Number of edges (leftmost): " << g1.get_edgeNum() << endl;
+        cout << "Number of phrases (leftmost): " << numPhrases(rlz) << endl;
 
         /* ---- Reset Phrase Boundaries (greedy) -----------------------------------------------------------------------------------------*/
 
@@ -323,7 +385,7 @@ int main(int argc, char* argv[]){
         /* ---- Reset Phrase Boiundaries (ILP) ----------------------------------------------------------------------------------------*/
 
         rlz.processSources(1);
-        // verify(rlz, strings, ref_idx, id);
+        verify(rlz, strings, ref_idx, id);
         cerr << numBoundaries(rlz) << "\t";
         
         if (writePhrase){
@@ -334,6 +396,12 @@ int main(int argc, char* argv[]){
             string fname43 = Output_compressed_name + "_ILP";
             rlz.write_compString(fname43);
         }
+
+        /* --------------------------------------------------------*/
+    
+        double vm, rss;
+        process_mem_usage(vm, rss);
+        cout << "VM: " << vm << "; RSS: " << rss << endl;
         
         /* ======================================================================================================================= */
         /* ---- Construct RLZGraph -----------------------------------------------------------------------------------------*/
@@ -342,29 +410,32 @@ int main(int argc, char* argv[]){
         cout << "    Constructing graph" << endl;
 
         // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
-        auto start_time = high_resolution_clock::now();
+        // cout << extract(rlz.csa, 0,1) << endl;
+        // auto start_time = high_resolution_clock::now();
         RLZGraph g (rlz);
-        auto end_time = high_resolution_clock::now();
-        duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
-        cerr << time_span.count() << endl;
 
-        cout << "----- printing all edges -----" << endl;
+        cout << "Number of nodes (ILP): " << g.get_nodeNum() << endl;
+        cout << "Number of edges (ILP): " << g.get_edgeNum() << endl;
+        cout << "Number of phrases (ILP): " << numPhrases(rlz) << endl;
+
+        // auto end_time = high_resolution_clock::now();
+        // duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
+        // cerr << time_span.count() << endl;
+
+        // cout << "----- printing all edges -----" << endl;
         // g.print_edges(cout);
-        g.print_edges(cout);
 
-        cout << "Number of nodes: " << g.nodeNum << endl;
-        cout << "Number of edges: " << g.edgeNum << endl;
-        cout << "Number of phrases: " << numPhrases(rlz) << endl;
 
-        g.verify();
+
+        // g.verify();
 
         
-        if (writeGraph)
-        {
-            cout << "writing graph to file" << endl;
-            ofstream out (Output_graph_name);
-            g.write_complete_graph(out);
-        }
+        // if (writeGraph)
+        // {
+        //     cout << "writing graph to file" << endl;
+        //     ofstream out (Output_graph_name);
+        //     g.write_complete_graph(out);
+        // }
 
         // cout << "reading from file" << endl;
         // {
