@@ -3,6 +3,7 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
+#include <deque>
 
 using namespace std::chrono;
 
@@ -61,6 +62,64 @@ int RLZ::RLZFactor(string & to_process){
     return compressed.size();
 }
 
+int RLZ::transferSources(){
+    if (!processed){
+        // processed = true;
+
+        int totalBoundaries = 0;
+
+        // store begin and end markers
+        // use multiset to sort the sources according to their beg_interval.second. Two sources may have the range and different lengths.
+        vector<multiset<Source *, SourceMore> > begin_markers (csa.size());
+        vector<int> end_markers (csa.size(), 0);
+
+        // iterate over all phrases and put markers in
+        for(auto s : sources){
+            if (s->beg_interval.first != -1){
+                begin_markers[s->beg_interval.first].insert(s);
+                end_markers[s->beg_interval.second] += 1;
+            }
+        }
+
+        //stack of sources currently processing
+        vector<Source *> processing;
+        // vector<int> overlapCount
+        // iterate over all positions
+        for(int p=0; p<begin_markers.size(); p++){
+            int pos;
+
+            //update processing
+            for(auto ss : begin_markers[p]){
+                processing.push_back(ss);
+            }
+            
+            if (processing.size() > 0){
+                pos = csa[p];
+            }
+
+            // update source's start location
+            for (int i=0; i<processing.size(); i++){
+                processing.at(i)->start_loc.push_back(pos);
+                int num_true = p - processing.at(i)->beg_interval.first + 1;
+                int num_actual = processing.at(i)->start_loc.size();
+                assert(num_true == num_actual);
+                totalBoundaries+=1;
+            }
+
+            // check if it is the end of some sources' interval
+            if (end_markers[p] != 0){
+                assert(processing.size() >= end_markers[p]);
+                for(int i=0; i<end_markers[p]; i++){
+                    assert(processing.back()->start_loc.size() == processing.back()->beg_interval.second - processing.back()->beg_interval.first + 1);
+                    processing.pop_back();
+                }
+            }
+        }
+        return totalBoundaries;
+    }
+    else return -1;
+}
+
 void RLZ::processSources(int option){
     
     // for(auto * s : sources){
@@ -72,31 +131,62 @@ void RLZ::processSources(int option){
     // if the start locations are not initialized, convert csa idx to reference index
     // find the leftmost locations on the fly.
     
-    vector<int> SA (csa.size(),-1);
+
+    auto start_time = high_resolution_clock::now();
     
+    // int totalBoundaries = transferSources();
+
+    auto end_time = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
+    // cerr << "!!!!!!!: " << time_span.count() << "\t";
+    
+    cout << "Phrase size: " << phrases.size() << endl;
+    cout << "Source size: " << sources.size() << endl;
+
+    vector<int> SA (csa.size(),-1);
+
     if (!processed){
         processed = true;
-        auto start_time = high_resolution_clock::now();
+        start_time = high_resolution_clock::now();
         cerr << totalBoundaries <<"\t";
         cout << "Processing source boundaries" << endl;
-        unordered_set<Phrase*, PhrasePtrHash> min_phrases;
-        PhraseHash hasher;
+        unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> min_phrases;
         int counter = 0;
         int actualBoundaries = 0;
 
-        for(auto * s : sources){
+        // tally boundary count
+        vector<int> boundCounter(csa.size());
 
+        for(auto * s : sources){
             int min_loc = INT_MAX;
             int i = s->beg_interval.first;
             int counter_i = 0;
             if (i != -1){
+                s->start_loc.clear();
+
                 // only get the first 1000 locations to save time.
-                while (i <= s->beg_interval.second && counter_i < 1000){
+                while (i <= s->beg_interval.second){
 
                     int loc;
                     if (SA[i]!=-1) loc = SA[i];
-                    else loc = csa[i];
+                    else{
+                        loc = csa[i];
+                        SA[i] = loc;
+                    }
                     s->start_loc.push_back(loc);
+
+                    // increment boundary counter
+                    unordered_set<int> setLoc;
+                    if (setLoc.find(loc) == setLoc.end()){
+                        boundCounter[loc] +=1;
+                        setLoc.insert(loc);
+                    }
+                    if (setLoc.find(loc+s->length) == setLoc.end()){
+                        boundCounter[loc+s->length] +=1;
+                        setLoc.insert(loc+s->length);
+                    }
+
+                    // find the leftmost
                     if (loc < min_loc){
                         min_loc = loc;
                     }
@@ -116,13 +206,51 @@ void RLZ::processSources(int option){
             //    cout << counter << endl;
             counter += 1;
         }
-        phrases = min_phrases;
+    phrases = min_phrases;
 
-        cerr << actualBoundaries << "\t";
+    cout << "Actual boundaries: " << actualBoundaries << "\t";
 
-        auto end_time = high_resolution_clock::now();
-        duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
-        cerr << time_span.count() << "\t";
+    /*pruning sources*/
+    int pruneBoundaries = 0;
+    for (auto *s : sources){
+        vector<bool> toDelete (s->start_loc.size(),false);
+        if (s->start_loc.size() > 1){
+            for (int i=0; i<s->start_loc.size(); i++){
+                int sl = s->start_loc[i];
+                if (boundCounter[sl] == 1 && boundCounter[sl+s->length] == 1){
+                    toDelete[i] = true;
+                }
+            }
+
+            vector<int> new_loc;
+            for(int i=0; i<s->start_loc.size();i++){
+                if (toDelete[i] == false){
+                    new_loc.push_back(s->start_loc[i]);
+                    pruneBoundaries += 1;
+                }
+            }
+            if (new_loc.size() == 0){
+                new_loc.push_back(s->start_loc[0]);
+            }
+            s->start_loc = new_loc;
+        }
+    }
+
+    cout << "Pruned boundaries: " << pruneBoundaries << endl;
+
+    end_time = high_resolution_clock::now();
+    time_span = duration_cast<duration<double>>(end_time - start_time);
+    cerr << "!!!!!!: " << time_span.count() << "\t";
+
+    // cout << "Phrase size: " << phrases.size() << endl;
+    // cout << "Source size: " << sources.size() << endl;
+
+    // total = 0;
+    // for(auto s : sources){
+    //     total += s->start_loc.size();
+    // }
+    // cout << "total boundaries: " << total << endl;
+
     }
 
 
@@ -153,7 +281,7 @@ void RLZ::processSources(int option){
         //     reset_phrases();
         //     break;
         case 2:{
-            cout <<"leftmost" << endl;
+            cout <<"Leftmost" << endl;
             auto t1 = high_resolution_clock::now();
             reset_phrases();
             auto t2 = high_resolution_clock::now();
@@ -183,11 +311,11 @@ void RLZ::optimize_phrases(){
     // vector<bool> sourceStatus(sources.size());
     
     // temporarily stores each source in vector for identifying each source.
-    unordered_set<Source*, SourceHash> sourcesLeft(sources);
+    unordered_set<Source*, SourceHash, SourceEqual> sourcesLeft(sources);
     
     // stores updated phrases
     // unordered_map<size_t, Phrase*> new_phrases;
-    unordered_set<Phrase*,PhrasePtrHash> new_phrases;
+    unordered_set<Phrase*,PhrasePtrHash, PhrasePtrEqual> new_phrases;
     PhraseHash hasher;
 
     // int sourceCounter = 0;
@@ -428,7 +556,7 @@ void RLZ::optimize_phrases_ILP(){
         cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
 
         // unordered_map<size_t, Phrase*> new_phrases;
-        unordered_set<Phrase*, PhrasePtrHash> new_phrases;
+        unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> new_phrases;
         PhraseHash hasher;
 
         unordered_set<int> source_check; 
@@ -486,7 +614,7 @@ void RLZ::optimize_phrases_ILP(){
 void RLZ::reset_phrases(){
     PhraseHash hasher;
     // unordered_map<size_t, Phrase*> new_phrases;
-    unordered_set<Phrase*, PhrasePtrHash> new_phrases;
+    unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> new_phrases;
     for(auto * s : sources){
         Phrase * p = s->p;
 
