@@ -18,7 +18,7 @@ RLZ::RLZ(string ref){
 
     // produce a BWT for both the reversed and the forward reference string
     construct_im(csa, ref, 1);
-    construct_im(csa_rev, revRef, 1);
+//    construct_im(csa_rev, revRef, 1);
 
     // record the size of the BWT
     totalLength = csa.size();
@@ -30,9 +30,9 @@ RLZ::RLZ(string ref){
  */
 int RLZ::RLZFactor(string & to_process){
 
-    //reverse the query
-    string revQuery;
-    revQuery.assign(to_process.rbegin(), to_process.rend());
+    // //reverse the query
+    // string revQuery;
+    // revQuery.assign(to_process.rbegin(), to_process.rend());
 
     // cout << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << endl;
     // csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", csa);
@@ -131,6 +131,7 @@ void RLZ::processSources(int option){
     // if the start locations are not initialized, convert csa idx to reference index
     // find the leftmost locations on the fly.
     
+    int actualRefLength = (csa.size() - 2)/2;
 
     auto start_time = high_resolution_clock::now();
     
@@ -148,7 +149,7 @@ void RLZ::processSources(int option){
     if (!processed){
         processed = true;
         start_time = high_resolution_clock::now();
-        cerr << totalBoundaries <<"\t";
+        cout << "Total Boundaries: " << totalBoundaries << endl;
         cout << "Processing source boundaries" << endl;
         unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> min_phrases;
         int counter = 0;
@@ -157,46 +158,76 @@ void RLZ::processSources(int option){
         // tally boundary count
         vector<int> boundCounter(csa.size());
 
+        // for each source, convert indices on SA to indices on reference
+        // also convert coordinate if on the reverse complement side
         for(auto * s : sources){
             int min_loc = INT_MAX;
             int i = s->beg_interval.first;
             int counter_i = 0;
+
+            // cout << "Source for phrase: " << s->p->start << "," << s->p->length << endl;
+
+            // i = -1 if it is a character not in the reference
             if (i != -1){
                 s->start_loc.clear();
 
-                // only get the first 1000 locations to save time.
-                while (i <= s->beg_interval.second){
+                unordered_set<int> setLoc;  // make sure that each location is only incremented once for each source
 
-                    int loc;
+                while (i <= s->beg_interval.second){
+                    int loc;    // records reference coordinate
+                    bool rev = false;   // records if it should be traversed in reverse complement direction
+                    
                     if (SA[i]!=-1) loc = SA[i];
                     else{
                         loc = csa[i];
                         SA[i] = loc;
                     }
-                    s->start_loc.push_back(loc);
 
-                    // increment boundary counter
-                    unordered_set<int> setLoc;
+                    // check if loc is on the reverse complement half
+                    if (loc >= (csa.size() - 1)/2){
+                        // cout << "revComp!" << endl;
+                        // cout << loc << endl;
+                        loc = csa.size() - 2 - (loc+s->length-1);
+                        rev = true;
+                    }
+
+                    // make sure that each location added is unique
+                    // (this makes the direction default set to the first occurrance)
                     if (setLoc.find(loc) == setLoc.end()){
-                        boundCounter[loc] +=1;
-                        setLoc.insert(loc);
-                    }
-                    if (setLoc.find(loc+s->length) == setLoc.end()){
-                        boundCounter[loc+s->length] +=1;
-                        setLoc.insert(loc+s->length);
-                    }
 
-                    // find the leftmost
-                    if (loc < min_loc){
-                        min_loc = loc;
+                        s->start_loc.push_back(loc);
+                        s->reversed.push_back(rev);
+
+                        // increment boundary counter for each unique location
+                        if (setLoc.find(loc) == setLoc.end()){
+                            boundCounter[loc] +=1;
+                            setLoc.insert(loc);
+                        }
+                        if (setLoc.find(loc+s->length) == setLoc.end()){
+                            boundCounter[loc+s->length] +=1;
+                            setLoc.insert(loc+s->length);
+                        }
+
+                        // find the leftmost
+                        if (loc < min_loc){
+                            min_loc = loc;
+                        }
+                        counter_i++;
+                        actualBoundaries++;
                     }
                     i++;
-                    counter_i++;
-                    actualBoundaries++;
+
                 }
             } else {
-                min_loc = s->start_loc[0];
+                // convert new character index to original reference coordinate
+                min_loc =  actualRefLength + (s->start_loc[0] - csa.size());
+                newChar_toChar[min_loc] = newChar_toChar[s->start_loc[0]];
+                s->start_loc[0] = min_loc;
                 actualBoundaries++;
+            }
+
+            if (i != -1){
+                assert(min_loc < actualRefLength);
             }
             s->p->start = min_loc;
             // min_phrases[hasher(*(s->p))]=(s->p);
@@ -208,13 +239,15 @@ void RLZ::processSources(int option){
         }
     phrases = min_phrases;
 
-    cout << "Actual boundaries: " << actualBoundaries << "\t";
+    cout << "Actual boundaries: " << actualBoundaries << endl;
 
     /*pruning sources*/
     int pruneBoundaries = 0;
     for (auto *s : sources){
         vector<bool> toDelete (s->start_loc.size(),false);
         if (s->start_loc.size() > 1){
+
+            // if a start location does not overlap with any other source, mark it to be deleted.
             for (int i=0; i<s->start_loc.size(); i++){
                 int sl = s->start_loc[i];
                 if (boundCounter[sl] == 1 && boundCounter[sl+s->length] == 1){
@@ -222,17 +255,30 @@ void RLZ::processSources(int option){
                 }
             }
 
+            // only keep the locations that are not deleted
             vector<int> new_loc;
+            vector<bool> new_rev;
             for(int i=0; i<s->start_loc.size();i++){
                 if (toDelete[i] == false){
                     new_loc.push_back(s->start_loc[i]);
+                    new_rev.push_back(s->reversed[i]);
+                    s->loc_to_idx[s->start_loc[i]] = new_loc.size()-1;
                     pruneBoundaries += 1;
                 }
             }
+            
+            // keep at least one location for each source
             if (new_loc.size() == 0){
                 new_loc.push_back(s->start_loc[0]);
+                new_rev.push_back(s->reversed[0]);
+                s->loc_to_idx[s->start_loc[0]] = 0;
+                pruneBoundaries += 1;
             }
             s->start_loc = new_loc;
+            s->reversed = new_rev;
+        
+        } else{
+            s->loc_to_idx[s->start_loc[0]] = 0;
         }
     }
 
@@ -240,7 +286,7 @@ void RLZ::processSources(int option){
 
     end_time = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(end_time - start_time);
-    cerr << "!!!!!!: " << time_span.count() << "\t";
+    cout << "Time (Pruning): " << time_span.count() << endl;
 
     // cout << "Phrase size: " << phrases.size() << endl;
     // cout << "Source size: " << sources.size() << endl;
@@ -262,7 +308,7 @@ void RLZ::processSources(int option){
             optimize_phrases();
             auto t22 = high_resolution_clock::now();
             duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
-            cerr << time_span3.count() << "\t";
+            cout << "Time (Greedy): " << time_span3.count() << endl;
 
             break;
         }
@@ -272,7 +318,7 @@ void RLZ::processSources(int option){
             optimize_phrases_ILP();
             auto t22 = high_resolution_clock::now();
             duration<double> time_span3 = duration_cast<duration<double>>(t22 - t11);
-            cerr << time_span3.count() << "\t";
+            cout << "Time (ILP): " << time_span3.count() << endl;
 
             break;
         }
@@ -286,7 +332,7 @@ void RLZ::processSources(int option){
             reset_phrases();
             auto t2 = high_resolution_clock::now();
             duration<double> time_span2 = duration_cast<duration<double>>(t2 - t1);
-            cerr << time_span2.count() << "\t";
+            cout << "Time (Leftmost): " << time_span2.count() << endl;
             break;
         }
     }
@@ -396,17 +442,21 @@ void RLZ::optimize_phrases(){
         // for all sources at that position, reset its corresponding phrase, remove all of its other occurrences in the set
         for (auto pairIt = posToSource[currPos.pos].begin(); pairIt != posToSource[currPos.pos].end(); pairIt++){
             
-            bool indicator = pairIt->second;
+            bool beg_end_indicator = pairIt->second;
             Source * currSource = pairIt->first;
 
             // update corresponding phrase
-            if (indicator){
+            if (beg_end_indicator){
                 currSource->p->setStart(currPos.pos);
-                // new_phrases[hasher(*currSource->p)] = currSource->p;
+                assert(currSource->loc_to_idx.find(currPos.pos)!= currSource->loc_to_idx.end());
+                bool rev = currSource->reversed[currSource->loc_to_idx[currPos.pos]];
+                currSource->p->setDirection(rev);
                 new_phrases.insert(currSource->p);
             } else {
                 currSource->p->setStart(currPos.pos - currSource->length);
-                // new_phrases[hasher(*currSource->p)] = currSource->p;
+                assert(currSource->loc_to_idx.find(currPos.pos - currSource->length)!= currSource->loc_to_idx.end());
+                bool rev = currSource->reversed[currSource->loc_to_idx[currPos.pos - currSource->length]];
+                currSource->p->setDirection(rev);
                 new_phrases.insert(currSource->p);
             }
 
@@ -460,7 +510,7 @@ void RLZ::optimize_phrases(){
 
 
 /**
- * @brief split string on a character
+ * @brief Helper function: split string on a character
  * 
  * @param s string to split 
  * @param c character to split on
@@ -502,12 +552,14 @@ void RLZ::optimize_phrases_ILP(){
         GRBModel model = GRBModel(env);
 
         // GRBVar xVec [totalLength];
+        // length of the original reference plus all new characters
+        int new_length = (csa.size() - 2)/2 + newChar_toChar.size();
 
-        GRBVar * xVec = new GRBVar [totalLength+1];
-        double * xCoff = new double[totalLength+1];
+        GRBVar * xVec = new GRBVar [new_length+1];
+        double * xCoff = new double[new_length+1];
         vector<GRBVar> yVec;
 
-        for(int i = 0; i <= totalLength; i++){
+        for(int i = 0; i <= new_length; i++){
             string varName = "x"+to_string(i);
             GRBVar x = model.addVar(0.0, 1.0, 1.0, GRB_BINARY, varName);
             xVec[i] = x;
@@ -516,39 +568,69 @@ void RLZ::optimize_phrases_ILP(){
         int sourceNum = 0;
         int sourceId = 0;
         vector<Source *> sourceVec;
+
+        // stores updated phrases
+        unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> new_phrases;
+        PhraseHash hasher;
+
+        // marks which position has already been chosen by those phrases with only one source
+        vector<bool> alreadyChosenVec (totalLength+1);
+
         for(Source * s : sources){
-            sourceVec.push_back(s);
-            sourceNum += s->start_loc.size();
-            GRBVar * ySource = new GRBVar [s->start_loc.size()];
-            double * yCoff  = new double [s->start_loc.size()];
-            for (int i =0; i < s->start_loc.size(); i++){
-                string varName = "y_"+to_string(sourceId)+"_"+to_string(i); 
 
-                GRBVar y = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, varName);
-                GRBVar x1 = xVec[s->start_loc[i]];
-                GRBVar x2 = xVec[s->start_loc[i] + s->length];
+            // do not add y variable if there is only one source (already chosen)
+            if (s->start_loc.size() == 1){
+                new_phrases.insert(s->p);
 
-                string constrName0 = "c"+to_string(sourceNum)+"_0";
-                string constrName1 = "c"+to_string(sourceNum)+"_1";
-                string constrName2 = "c"+to_string(sourceNum)+"_2";
-                model.addConstr(y >= x1 + x2 - 1, constrName0);
-                model.addConstr(y <= x1, constrName1);
-                model.addConstr(y <= x2, constrName2);
-                
-                yVec.push_back(y);
-                ySource[i] = y;
-                yCoff[i] = 1;
-                sourceNum+=1;
+                // for left and right boundaries, add constraint to tell the model that this position has already been chosen.
+                if (alreadyChosenVec[s->p->start] == false){
+                    alreadyChosenVec[s->p->start] = true;
+                    GRBVar x = xVec[s->p->start];
+                    model.addConstr(x >= 1);
+                }
+
+                if (alreadyChosenVec[s->p->start + s->p->length] == false){
+                    alreadyChosenVec[s->p->start+s->p->length] = true;
+                    GRBVar x = xVec[s->p->start+s->p->length];
+                    model.addConstr(x >= 1);
+                }
             }
 
-            GRBLinExpr sourceExp;
-            sourceExp.addTerms(yCoff, ySource, s->start_loc.size());
-            string constrName = "c"+to_string(sourceId);
-            model.addConstr(sourceExp, GRB_GREATER_EQUAL, 1, constrName);
-            sourceId++;
+            // add y variables
+            else {
+                sourceVec.push_back(s);
+                sourceNum += s->start_loc.size();
+                GRBVar * ySource = new GRBVar [s->start_loc.size()];
+                double * yCoff  = new double [s->start_loc.size()];
+                for (int i =0; i < s->start_loc.size(); i++){
+                    string varName = "y_"+to_string(sourceId)+"_"+to_string(i); 
 
-            delete[] ySource;
-            delete[] yCoff;
+                    GRBVar y = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, varName);
+                    GRBVar x1 = xVec[s->start_loc[i]];
+                    GRBVar x2 = xVec[s->start_loc[i] + s->length];
+
+                    string constrName0 = "c"+to_string(sourceNum)+"_0";
+                    string constrName1 = "c"+to_string(sourceNum)+"_1";
+                    string constrName2 = "c"+to_string(sourceNum)+"_2";
+                    // model.addConstr(y >= x1 + x2 - 1, constrName0) ;
+                    model.addConstr(y <= x1, constrName1);
+                    model.addConstr(y <= x2, constrName2);
+                    
+                    yVec.push_back(y);
+                    ySource[i] = y;
+                    yCoff[i] = 1;
+                    sourceNum+=1;
+                }
+
+                GRBLinExpr sourceExp;
+                sourceExp.addTerms(yCoff, ySource, s->start_loc.size());
+                string constrName = "c"+to_string(sourceId);
+                model.addConstr(sourceExp, GRB_GREATER_EQUAL, 1, constrName);
+                sourceId++;
+
+                delete[] ySource;
+                delete[] yCoff;
+            }
         }
 
         model.optimize();
@@ -556,10 +638,9 @@ void RLZ::optimize_phrases_ILP(){
         cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
 
         // unordered_map<size_t, Phrase*> new_phrases;
-        unordered_set<Phrase*, PhrasePtrHash, PhrasePtrEqual> new_phrases;
-        PhraseHash hasher;
 
-        unordered_set<int> source_check; 
+        // ensure that one source won't be processed more than once
+        unordered_set<int> source_processed; 
         
         for (GRBVar yvar : yVec){
             if (yvar.get(GRB_DoubleAttr_X) == 1){
@@ -569,17 +650,19 @@ void RLZ::optimize_phrases_ILP(){
                 Source * s = sourceVec[stoi(splitS[1])];
                 
                 // check if the source has already been processed 
-                auto check = source_check.find(stoi(splitS[1]));
-                if (check != source_check.end()){
+                auto processed = source_processed.find(stoi(splitS[1]));
+                if (processed != source_processed.end()){
                     continue;
                 } else {
-                    source_check.insert(stoi(splitS[1]));
+                    source_processed.insert(stoi(splitS[1]));
                 }
 
                 int left = s->start_loc[stoi(splitS[2])];
                 int right = left + s->length;
                 
                 s->p->setStart(left);
+                assert(s->loc_to_idx.find(left) != s->loc_to_idx.end());
+                s->p->setDirection(s->reversed[s->loc_to_idx[left]]);
                 
                 // add the updated phrase to the new phrase set
                 // auto find = new_phrases.find(hasher(*(s->p)));
@@ -593,7 +676,7 @@ void RLZ::optimize_phrases_ILP(){
         }
         phrases = new_phrases;
         int count = 0;
-        for( int i = 0; i <= totalLength; i++){
+        for( int i = 0; i <= new_length; i++){
             GRBVar xvar = xVec[i];
             if (xvar.get(GRB_DoubleAttr_X) == 1){
                 count ++;
@@ -601,7 +684,8 @@ void RLZ::optimize_phrases_ILP(){
         }
         cout << count << endl;
 
-
+        delete[] xVec;
+        delete[] xCoff;
 
     }catch(GRBException e) {
         cout << "Error code = " << e.getErrorCode() << endl;
@@ -622,7 +706,11 @@ void RLZ::reset_phrases(){
         for(int i : s->start_loc){
             if (i < min_loc) min_loc = i;
         }
+
         p->setStart(min_loc);
+
+        assert(s->loc_to_idx.find(min_loc) != s->loc_to_idx.end());
+        p->setDirection(s->reversed[s->loc_to_idx[min_loc]]);
 
         // new_phrases[hasher(*p)] = p;
         new_phrases.insert(p);
@@ -681,10 +769,13 @@ Phrase* RLZ::check_alphabet(string::iterator & strIt){
         strIt++;
 
         vector<int> start_loc{idx};
+        vector<bool> rev{false};
+        map<int, int> loc_to_idx;
+        loc_to_idx[idx] = 0;
 
         // create or find the corresponding source
         if (ret_cp.second){
-            Source * source = new Source {p, make_pair(-1,-1), start_loc,1};
+            Source * source = new Source {p, make_pair(-1,-1), start_loc,rev,1,loc_to_idx};
             auto Sret = sources.insert(source);
             totalBoundaries += 1; 
         }
@@ -735,6 +826,8 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
     // assign to the leftmost
     vector<int> start_loc;
     pair<int, int> beg_interval {l_res, r_res};
+    vector<bool> reversed;
+    map<int, int> loc_to_idx;
     // int min_loc = INT_MAX;
     // for(int i = l_res; i<=r_res; i++){
     //     int pos = csa[i];
@@ -751,7 +844,7 @@ Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){
 
     // create or find the corresponding source
     if (Pret.second){
-        Source * source = new Source {p, beg_interval, start_loc, length};
+        Source * source = new Source {p, beg_interval, start_loc, reversed, length, loc_to_idx};
         auto Sret = sources.insert(source);
         totalBoundaries += source->beg_interval.second - source->beg_interval.first +1; 
     }
@@ -780,7 +873,18 @@ void RLZ::print_comp_string(int stringID){
  * @return pair<Phrase *, bool> return the pointer to the already created phrase. Boolean indicates if the phrase is newly created.
  */
 pair<Phrase *, bool> RLZ::create_phrase(int pos, int length){
-    Phrase * phrase = new Phrase{pos, length};
+
+    Phrase * phrase;
+
+    // if pos falls in the reverse complement string, convert it to normal coordinate
+    // set it as a reversed phrase
+    if (pos >= (csa.size() - 1) / 2){
+        pos = csa.size() - 2 - (pos + length - 1);
+        phrase = new Phrase{pos, length, true};
+    } else{
+        phrase = new Phrase{pos, length, false};
+    }
+
 
     // PhraseHash hasher;
     // auto phrase_hash = hasher(*phrase);
@@ -813,16 +917,22 @@ void RLZ::print_phrases(){
     cout << endl;
 }
 
+
+
 string RLZ::decode(int stringID){
     string toReturn;
+    int actualRefLength = (csa.size() - 2)/2;
     for(Phrase * p : compressed_strings[stringID]){
-        if (p->start > csa.size() - 1 ){
+        if (p->start > actualRefLength - 1 ){
             assert(p->length == 1);
             // p->print();
             toReturn += newChar_toChar[p->start];
         }
         else {
             string ext = extract(csa, p->start, p->start+p->length-1);
+            if (p->reversed){
+                ext = reverseComp(ext);
+            }
             reverse(ext.begin(), ext.end());
             toReturn += ext;
         }

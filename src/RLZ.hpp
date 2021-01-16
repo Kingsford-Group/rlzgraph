@@ -31,6 +31,7 @@ typedef int_vector<>::size_type size_type;
 struct Phrase{
     int start;
     int length;
+    bool reversed;  // records if the node should be traversed in reverse direction
 
     /**
      * @brief Compare phrases based on start position and length
@@ -38,17 +39,22 @@ struct Phrase{
      * @param p another phrase 
      * @return true if both start and length are equal
      */
-    bool operator==(const Phrase & p) const{
-        return (this->start == p.start && this->length == p.length);
+    bool operator==(const Phrase & ph) const{
+        return (this->start == ph.start) && (this->length == ph.length) && (this->reversed == ph.reversed);
     }
 
+
     void print(ostream & out) const{
-        out << "(" << start << "," << length << ")";
+        out << "(" << start << "," << length << "," << to_string(reversed) << ")";
     }
 
     // used to reset start points
     void setStart(int s){
         start = s;
+    }
+
+    void setDirection(bool rev){
+        reversed = rev;
     }
 };
 
@@ -62,7 +68,9 @@ struct Source{
     Phrase * p;
     pair<int, int> beg_interval;
     vector<int> start_loc;
+    vector<bool> reversed;  // records if the node should be traversed in reverse direction.
     int length;
+    map<int, int> loc_to_idx; // maps start_loc to its index in the vector;
 
     /**
      * @brief compare sources based on corresponding phrase
@@ -89,6 +97,12 @@ struct Source{
             out << loc << ", ";
         }
         out << endl;
+
+        for (bool rev : reversed){
+            out << rev << "," ;
+        }
+        out << endl;
+    
     }
 };
 
@@ -102,7 +116,7 @@ public:
     size_t operator()(const Phrase& p) const
     {   
         hash<string> hasher;
-        return hasher(to_string(p.start) + "/" + to_string(p.length)); 
+        return hasher(to_string(p.start) + "/" + to_string(p.length)+"/"+to_string(p.reversed)); 
     } 
 }; 
 
@@ -114,7 +128,7 @@ class PhrasePtrHash{
     public:
     size_t operator()(const Phrase * p) const{
         hash<string> hasher;
-        return hasher(to_string(p->start) + "/" + to_string(p->length)); 
+        return hasher(to_string(p->start) + "/" + to_string(p->length)+"/"+to_string(p->reversed)); 
     }
 };
 
@@ -141,7 +155,8 @@ public:
     // id is returned as hash function 
     size_t operator()(const Source * s) const
     { 
-        return size_t(s->p);
+        PhrasePtrHash hasher;
+        return hasher(s->p);
     } 
 };
 
@@ -402,6 +417,46 @@ class RLZ{
      * @return Phrase* 
      */
     Phrase* check_alphabet(string::iterator & strIt);
+
+    
+    char revCompHelper(char c){
+        switch (c){
+            case 'A': return 'T';
+            case 'C':return 'G';
+            case 'G': return 'C';
+            case 'T': return 'A';
+            case 'N': return 'W';
+            case 'M': return 'A';
+            case 'Y': return 'B';
+            case 'S': return 'D';
+            case 'R': return 'H';
+            case 'K': return 'V';
+            case 'B': return 'M';
+            case 'D': return 'Y';
+            case 'H': return 'S';
+            case 'V': return 'R';
+            case 'U': return 'K';
+            case 'W': return 'N';
+            case '$': return 16;
+        }
+        cerr << "Unrecognized Character (revComp): " << c << endl;
+        exit(1);
+    }
+    /**
+     * @brief Produce the reverse complement of input string
+     * 
+     * @param toreverse input string
+     * @return string reverse complement
+     */
+    string reverseComp(string toreverse){
+        string s ="";
+        for (int i=0;i<toreverse.length();i++){
+            s+=revCompHelper(toreverse[i]);
+        }
+        reverse(s.begin(), s.end());
+        return s;
+    }
+
 
  
 };

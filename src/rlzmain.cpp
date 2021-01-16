@@ -4,6 +4,8 @@
 #include <map>
 #include "RLZ.hpp"
 #include "RLZGraph.hpp"
+// #include "vg.hpp"
+#include <sdsl/bit_vectors.hpp>
 
 #include <ctime>
 #include <ratio>
@@ -12,7 +14,8 @@
 
 using namespace std;
 using namespace std::chrono;
-
+// using namespace vg;
+using namespace sdsl;
 
 string Input_ref="";
 string Input_strings="";
@@ -25,58 +28,30 @@ bool writePhrase = false;
 bool writeSource = false;
 bool writeCompressed = false;
 bool writeGraph = false;
+bool runGreedy = false;
+bool runILP = false;
 
 int Strings_to_use = 0;
 int ref_idx=0;
 
 void print_help(){
-    printf("--------------------------------------------------------------------------------------------\n");
-    printf("|  USAGE: rlzgraph -r <ref.fa> -i <input.fa> -g <output_graph_name> -p <output_phrase_name> |\n");
-    printf("--------------------------------------------------------------------------------------------\n");
-    printf("-i is required. If reference fasta is missing, the first sequence of the input fasta file will be used as reference.\n");
+    printf("-------------------------------------------------\n");
+    printf("|  USAGE: rlzgraph [OPTIONS] -i <input.fasta>   |\n");
+    printf("-------------------------------------------------\n");
+    printf("Required Arguments:\n");
+    printf("        -i      <input.fasta>       Fasta file containing complete genomic sequences. Each sequence will be treated as one complete genome.\n");
+    printf("                                    If reference fasta is missing, the first sequence of the input fasta file will be used as reference.\n");
     printf("Optional Arguments: \n");
-    printf("          -ii <ref idx>         The index of the reference sequence\n");
-    printf("          -n <num seq>          Number of sequences to use\n");
+    printf("        -ii     <ref idx>           The index of the reference sequence in input.fasta\n");
+    printf("        -n      <num seq>           Number of sequences to use in input.fasta\n");
+    printf("        -r      <ref.fasta>         Fasta file containing one complete genomic sequence that will be used as the reference\n");
+    printf("        -p      <out.phrases>       Output file that will contain all unique phrases. Results from different heuristics will be stored in \"out.phrases_[heuristic]\"\n");
+    printf("        -g      <out.gfa>         Output file that will contain the graph structure and the paths. This file will be in .gfa format\n");
+    printf("        -s      <out.sources>       Output file that will contain all sources.\n");
+    printf("        -c      <out.compressed>    Output file that will contain strings of phrases for each input sequence.\n");
 }
 
 void print_version(){}
-
-void process_mem_usage(double& vm_usage, double& resident_set)
-{
-   using std::ios_base;
-   using std::ifstream;
-   using std::string;
-
-   vm_usage     = 0.0;
-   resident_set = 0.0;
-
-   // 'file' stat seems to give the most reliable results
-   //
-   ifstream stat_stream("/proc/self/stat",ios_base::in);
-
-   // dummy vars for leading entries in stat that we don't care about
-   //
-   string pid, comm, state, ppid, pgrp, session, tty_nr;
-   string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-   string utime, stime, cutime, cstime, priority, nice;
-   string O, itrealvalue, starttime;
-
-   // the two fields we want
-   //
-   unsigned long vsize;
-   long rss;
-
-   stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
-               >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
-               >> utime >> stime >> cutime >> cstime >> priority >> nice
-               >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care about the rest
-
-   stat_stream.close();
-
-   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
-   vm_usage     = vsize / 1024.0;
-   resident_set = rss * page_size_kb;
-}
 
 vector<string> readFASTA(string filename, int num_seq){
     fstream input(filename);
@@ -155,6 +130,12 @@ bool parse_argument(int argc, char * argv[]){
         else if (string(argv[i])=="-n"){
             Strings_to_use = stoi(argv[++i]);
         }
+        else if (string(argv[i])=="-ilp"){
+            runILP = true;
+        }
+        else if (string(argv[i])=="-greedy"){
+            runGreedy = true;
+        }
         else{
             cerr << "Unknown argument: " << string(argv[i]) << endl;\
             exit(1);
@@ -194,10 +175,10 @@ char revCompHelper(char c){
  * @param rlz 
  * @return int 
  */
-int numBoundaries(RLZ & rlz){
+int numBoundaries(RLZ * rlz){
     unordered_set<int> positions;
-    for(auto p : rlz.phrases){
-        if (p->start > rlz.csa_rev.size() - 1){
+    for(auto p : rlz->phrases){
+        if (p->start > rlz->csa_rev.size() - 1){
             positions.insert(p->start);
             positions.insert(p->start+1);
             continue;
@@ -235,13 +216,41 @@ int numPhrases(RLZ & rlz){
  */
 void verify(RLZ & rlz, vector<string> strings, int ref_idx, int id){
     int j = 0;
-    cout << "Verifying" << endl;
     for (int i=0;i<strings.size();i++){
-        if (id != 0 && ref_idx == i) continue;    // does not add ref string
+        if (id != 0 && ref_idx == i) continue;    // does not verify ref string
+        cout << "Verifying " << i << endl;
         string test = rlz.decode(j);
         assert(test.compare(strings[i])==0);
         j++;
     }
+}
+
+/**
+ * @brief Verify path and graph construction
+ * 
+ * @param paths The constructed paths
+ * @param strings Actual strings
+ * @param ref_idx The index of the reference used
+ * @param id Whether the reference is provided
+ */
+void verifyPaths(vector<RLZPath*> paths, vector<string> strings, int ref_idx, int id, string & ref){
+    int j = 1;
+
+    // verify reference string separately
+    string reftest = paths[0]->reconstruct();
+    // reverse(reftest.begin(), reftest.end());
+    // cout << reftest << endl;
+    assert(reftest.compare(ref) == 0);
+
+    for (int i=0;i<strings.size();i++){
+        if (id != 0 && ref_idx == i) continue;    // does not verify ref string
+        cout << "Verifying " << i << endl;
+        string test = paths[j]->reconstruct();
+        // cout << test << endl;
+        assert(test.compare(strings[i])==0);
+        j++;
+    }
+    cout << "Verified all paths" << endl;
 }
 
 /**
@@ -268,74 +277,72 @@ int main(int argc, char* argv[]){
         /* ---- Read Input Files -----------------------------------------------------------------------------------------*/
 
         string ref;
+        string ref_orig;
         vector<string> strings = readFASTA(Input_strings, Strings_to_use);
         int start = 0;
         int id = 0;
 
         if (Input_ref!=""){
             vector<string> refv = readFASTA(Input_ref, 0);
-            ref = refv[0]; 
+            ref_orig = refv[0]; 
         } else {
-            ref = strings[ref_idx];
+            ref_orig = strings[ref_idx];
             id = 1;
         }
         
         /* ---- Construct Reference String -------------------------------------------------------------------------------*/
 
-        ref = reverseComp(ref) + '#' + ref;
+        ref = reverseComp(ref_orig) + '#' + ref_orig;
 
         reverse(ref.begin(), ref.end());
+
+        // cout << "Refrence: " << ref << endl;
 
         cout << "Finished reading files." << endl;
         cout << "Length of reference: " << ref.length() << endl;
 
         /* ---- Build Reference Compressed Suffix Array ------------------------------------------------------------------*/
+        auto start_ref = high_resolution_clock::now();
 
         RLZ rlz(ref);
         cout << "Built the initial SA" << endl;
 
         cout << "SA size: "<< rlz.csa.size() << endl;
 
+        auto end_ref = high_resolution_clock::now();
+        auto duration_ref = duration_cast<duration<double> >(end_ref - start_ref);
+        cout << "Time (Ref Construction): " << duration_ref.count() << endl;
+
         /* ----- Begin RLZ Factorization (default = smallest ) ----------------------------------------------------------------------------------------*/
         // sources are not set at this stage
 
+        auto start_factor = high_resolution_clock::now();
         for(int i = 0; i<strings.size(); i++){
             if (id != 0 && i==ref_idx) continue;    // does not add ref string
             rlz.RLZFactor(strings[i]);
-            // cout << "Done for " << i << endl;
+            cout << "Done for " << i << endl;
         }
+        auto end_factor = high_resolution_clock::now();
+        auto duration_factor = duration_cast<duration<double> >(end_factor - start_factor);
+        cout << "Time (Factorization): " << duration_factor.count() << endl;
 
-        verify(rlz, strings, ref_idx, id);
-        cerr << numBoundaries(rlz) << "\t";
+        // verify(rlz, strings, ref_idx, id);
+        cout << "Boundaries (smallest): " << numBoundaries(&rlz) << endl;
         
         // rlz.print_comp_string(0);
-        if (writePhrase){
-            string fname1 = Output_phrase_name+"_smallest";
-            rlz.write_phrases(fname1);
-        }
-        if (writeCompressed){
-            string fname13 = Output_compressed_name+"_smallest";
-            rlz.write_compString(fname13);
-        }
-
-        
-        cout << " ================================================= " << endl;
-        cout << "    Constructing graph" << endl;
-
-        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
-        // cout << extract(rlz.csa, 0,1) << endl;
-        // auto start_time = high_resolution_clock::now();
-        RLZGraph g2 (rlz);
-
-        cout << "Number of nodes (smallest): " << g2.get_nodeNum() << endl;
-        cout << "Number of edges (smallest): " << g2.get_edgeNum() << endl;
-        cout << "Number of phrases (smallest): " << numPhrases(rlz) << endl;
+        // if (writePhrase){
+        //     string fname1 = Output_phrase_name+"_smallest";
+        //     rlz.write_phrases(fname1);
+        // }
+        // if (writeCompressed){
+        //     string fname13 = Output_compressed_name+"_smallest";
+        //     rlz.write_compString(fname13);
+        // }
 
         /* ---- Reset Phrase Boundaries (leftmost) -----------------------------------------------------------------------------------------*/
 
         rlz.processSources(2);
-        verify(rlz, strings, ref_idx, id);
-        cerr << numBoundaries(rlz) << "\t";
+        cout << "Boundaries (leftmost): " << numBoundaries(&rlz) << endl;
         
         //output all sources
         if (writeSource){
@@ -343,65 +350,51 @@ int main(int argc, char* argv[]){
             rlz.write_sources(Output_source_name);
         }
 
-        if (writePhrase){
+        if (!runGreedy && writePhrase){
             string fname2 = Output_phrase_name+"_leftmost";
             rlz.write_phrases(fname2);
         }
 
-        if (writeCompressed){
+        if (!runGreedy && writeCompressed){
             string fname23 = Output_compressed_name+"_leftmost";
             rlz.write_compString(fname23);
         }
 
-        cout << " ================================================= " << endl;
-        cout << "    Constructing graph" << endl;
-
-        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
-        // cout << extract(rlz.csa, 0,1) << endl;
-        // auto start_time = high_resolution_clock::now();
-        RLZGraph g1 (rlz);
-
-        cout << "Number of nodes (leftmost): " << g1.get_nodeNum() << endl;
-        cout << "Number of edges (leftmost): " << g1.get_edgeNum() << endl;
-        cout << "Number of phrases (leftmost): " << numPhrases(rlz) << endl;
+        // verify(rlz, strings, ref_idx, id);
 
         /* ---- Reset Phrase Boundaries (greedy) -----------------------------------------------------------------------------------------*/
 
+        if (runGreedy){
+            rlz.processSources(0);
+            cout << "Boundaries (greedy): "<< numBoundaries(&rlz) << endl;
 
-        // rlz.processSources(0);
-        // // verify(rlz, strings, ref_idx, id);
-        // cerr << numBoundaries(rlz) << "\t";
+            if (writePhrase){
+                string fname3 = Output_phrase_name+"_greedy";
+                rlz.write_phrases(fname3);
+            }
 
-        // if (writePhrase){
-        //     string fname3 = Output_phrase_name+"_greedy";
-        //     rlz.write_phrases(fname3);
-        // }
-
-        // if (writeCompressed){
-        //     string fname33 = Output_compressed_name+"_greedy";
-        //     rlz.write_compString(fname33);
-        // }
+            if (writeCompressed){
+                string fname33 = Output_compressed_name+"_greedy";
+                rlz.write_compString(fname33);
+            }
+            // verify(rlz, strings, ref_idx, id);
+        }
 
         /* ---- Reset Phrase Boiundaries (ILP) ----------------------------------------------------------------------------------------*/
-
-        rlz.processSources(1);
-        verify(rlz, strings, ref_idx, id);
-        cerr << numBoundaries(rlz) << "\t";
-        
-        if (writePhrase){
-            string fname4 = Output_phrase_name + "_ILP";
-            rlz.write_phrases(fname4);
+        if (runILP){
+            rlz.processSources(1);
+            // verify(rlz, strings, ref_idx, id);
+            // cout << "Boundaries (ILP): " << numBoundaries(&rlz) << endl;
+            
+            if (writePhrase){
+                string fname4 = Output_phrase_name + "_ILP";
+                rlz.write_phrases(fname4);
+            }
+            if (writeCompressed){
+                string fname43 = Output_compressed_name + "_ILP";
+                rlz.write_compString(fname43);
+            }
         }
-        if (writeCompressed){
-            string fname43 = Output_compressed_name + "_ILP";
-            rlz.write_compString(fname43);
-        }
-
-        /* --------------------------------------------------------*/
-    
-        double vm, rss;
-        process_mem_usage(vm, rss);
-        cout << "VM: " << vm << "; RSS: " << rss << endl;
         
         /* ======================================================================================================================= */
         /* ---- Construct RLZGraph -----------------------------------------------------------------------------------------*/
@@ -409,34 +402,73 @@ int main(int argc, char* argv[]){
         cout << " ================================================= " << endl;
         cout << "    Constructing graph" << endl;
 
-        cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
-        // cout << extract(rlz.csa, 0,1) << endl;
-        // auto start_time = high_resolution_clock::now();
+        // cout << "reference: " << extract(rlz.csa, 0, rlz.csa.size()-1) << endl;
+        auto start_time = high_resolution_clock::now();
         RLZGraph g (rlz);
-
-        cout << "Number of nodes (ILP): " << g.get_nodeNum() << endl;
-        cout << "Number of edges (ILP): " << g.get_edgeNum() << endl;
-        cout << "Number of phrases (ILP): " << numPhrases(rlz) << endl;
-
-        // auto end_time = high_resolution_clock::now();
-        // duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
-        // cerr << time_span.count() << endl;
+        auto end_time = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double> >(end_time - start_time);
+        cout << "Time (Graph construction): " << time_span.count() << endl;
 
         // cout << "----- printing all edges -----" << endl;
         // g.print_edges(cout);
+        // g.print_edges(cout);
 
+        cout << "Number of nodes: " << g.get_nodeNum() << endl;
+        cout << "Number of edges: " << g.get_edgeNum() << endl;
+        cout << "Number of phrases: " << numPhrases(rlz) << endl;
 
+        ofstream output_g (Output_graph_name);
+        if (writeGraph){
+            g.write_complete_graph(output_g);
+        }
+            // VG vg_graph;
+            
+            // // create vg nodes
+            // // need to increment nodeIdx by one because vg node indices start from 1
+            // for(RLZNode * node : g.Nodes){
+            //     vg_graph.create_node(node->seq, node->nodeIdx+1);
+            // }
 
-        // g.verify();
+            // // create vg edges
+            // for(RLZEdge * edge : g.Edges){
+            //     vg_graph.create_edge(edge->first->nodeIdx+1, edge->second->nodeIdx+1, edge->from_start, edge->to_end);
+            // }
 
-        
-        // if (writeGraph)
-        // {
-        //     cout << "writing graph to file" << endl;
-        //     ofstream out (Output_graph_name);
-        //     g.write_complete_graph(out);
+            // // create vg paths
+            // // iterate over compressed strings and map each phrase to corresponding node idx
+            
+            // vector<RLZPath*> paths = g.create_paths();
+            // verifyPaths(paths, strings, ref_idx, id, ref_orig);
+
+            // int pathId =0;
+            // cout << "Outputing paths" << endl;
+
+            // string fname_paths = Output_graph_name + "_paths";
+            // ofstream out_paths(fname_paths);
+            // for(RLZPath* p : paths){
+            //     p->print(out_paths);
+            // }
+                // create VG::Path
+                // cout << "Path" << endl;
+                
+                // list<NodeTraversal> newNodePath;
+                // for (int idx=0; idx < p->size(); idx ++){
+                    // NodeTraversal currNode (vg_graph.get_node(p->path[idx]->nodeIdx+1),p->reversed[idx]);
+                    // newNodePath.push_back(currNode);
+
+                // }
+
+                // Path newPath = vg_graph.create_path(newNodePath);
+                // newPath.set_name(to_string(pathId));
+
+                // extend VG.paths
+                // vg_graph.paths.extend(newPath, false, false);
+
+                // pathId +=1;
+            // }
+
+        //     vg_graph.serialize_to_file(Output_graph_name, 1000);
         // }
-
         // cout << "reading from file" << endl;
         // {
         //     ifstream in ("data.sdsl");
