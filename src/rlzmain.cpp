@@ -384,7 +384,7 @@ int main(int argc, char* argv[]){
         if (runILP){
             rlz.processSources(1);
             // verify(rlz, strings, ref_idx, id);
-            // cout << "Boundaries (ILP): " << numBoundaries(&rlz) << endl;
+            cout << "Boundaries (ILP): " << numBoundaries(&rlz) << endl;
             
             if (writePhrase){
                 string fname4 = Output_phrase_name + "_ILP";
