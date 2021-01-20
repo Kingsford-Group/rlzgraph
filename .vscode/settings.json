@@ -9,6 +9,15 @@
         "string_view": "cpp",
         "random": "cpp",
         "chrono": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "type_traits": "cpp",
+        "regex": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "initializer_list": "cpp",
+        "valarray": "cpp",
+        "utility": "cpp",
+        "deque": "cpp",
+        "vector": "cpp"
     }
 }
