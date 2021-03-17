@@ -28,8 +28,8 @@ RLZGraph:: RLZGraph(RLZ & rlz){
     unordered_set<FirstPassEdge, FirstPassEdgeHash> firstPassEdges;
     // vector<RLZEdge*> Edges;
 
-    RLZNode * source = new RLZNode{"$", -1, 0, false};
-    RLZNode * sink = new RLZNode{"#", -1, 1, false};
+    RLZNode * source = new RLZNode{"$", -1, 1, false};
+    RLZNode * sink = new RLZNode{"#", -1, 2, false};
 
     Nodes.push_back(source);
     Nodes.push_back(sink);
@@ -118,7 +118,7 @@ RLZGraph:: RLZGraph(RLZ & rlz){
     int currIdx = 0;
     int nextIdx = 0;
 
-    int nodeIdx = 2;    // starting from 2 because source and sink takes 0 and 1
+    int nodeIdx = 3;    // starting from 2 because source and sink takes 0 and 1
     for(int i=2; i<=numOnes; i++){
         nextIdx = select_bound(i);
 

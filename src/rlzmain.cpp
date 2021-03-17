@@ -79,6 +79,7 @@ vector<string> readFASTA(string filename, int num_seq){
             if(line.find(' ')!=string::npos){
                 content.clear();
             } else {
+                transform(line.begin(), line.end(), line.begin(), ::toupper);
                 content+=line;
             }
         }
