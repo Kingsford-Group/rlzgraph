@@ -10,6 +10,8 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
+#include <sys/time.h>
+#include <sys/resource.h>
 // #include "util.cpp"
 
 using namespace std;
@@ -422,7 +424,14 @@ int main(int argc, char* argv[]){
         if (writeGraph){
             g.write_complete_graph(output_g);
         }
+
+        //print rss
+        struct rusage r;
+        getrusage(RUSAGE_SELF, &r);
+
+        cout << "RSS: " << r.ru_maxrss / 1024 << " MB" << endl;
             // VG vg_graph;
+
             
             // // create vg nodes
             // // need to increment nodeIdx by one because vg node indices start from 1
