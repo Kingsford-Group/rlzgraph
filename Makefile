@@ -8,8 +8,8 @@ SORTLIB_64=$(HOME)/lib/libdivsufsort64.a
 CC = gcc
 CXX = g++
 
-INCLUDES = -g -O0 -I $(HOME)/include -I $(GUROBI)/include
-CXXFLAGS = -std=c++11 $(INCLUDES)
+INCLUDES = -g -O3 -I $(HOME)/include -I $(GUROBI)/include
+CXXFLAGS = -std=c++14 $(INCLUDES)
 
 LDADD = $(SDSL) $(SORTLIB) $(SORTLIB_64)
 GUROBI_LIB = $(shell ls $(GUROBI)/lib/libgurobi[0-9][0-9].so | tail -n 1 | xargs basename -s .so | cut -b 4-)
