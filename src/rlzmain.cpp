@@ -95,6 +95,42 @@ vector<string> readFASTA(string filename, int num_seq){
     return strings;
 }
 
+string readRefFasta(string filename, int refIdx){
+    fstream input(filename);
+    if (!input.good()){
+        cerr << "BAD INPUT!: " << filename << endl;
+        exit(1);
+    }
+    string ref, line;
+    int id = 0;
+    while (getline(input, line)){
+        if (line[0] == '>'){
+            id +=1;
+            if (id > refIdx){
+                break;
+            }
+        }
+        if (id == refIdx){
+            if (!line.empty()){
+                if(line.find(' ')!=string::npos){
+                    ref.clear();
+                } else {
+                    transform(line.begin(), line.end(), line.begin(), ::toupper);
+                    ref+=line;
+                }
+            }
+        }
+    }
+
+    if (ref == ""){
+        cerr << "!!! Reference not found. Maybe refIdx is too large." << endl;
+        exit(-1);
+    }
+
+    cout << "Read Reference with " << ref.length() << " chars." << endl; 
+    return ref;
+}
+
 
 bool parse_argument(int argc, char * argv[]){
     bool success=true;
@@ -284,17 +320,23 @@ int main(int argc, char* argv[]){
 
         string ref;
         string ref_orig;
-        vector<string> strings = readFASTA(Input_strings, Strings_to_use);
+        vector<string> strings;// = readFASTA(Input_strings, Strings_to_use);
         int start = 0;
         int id = 0;
 
         if (Input_ref!=""){
-            vector<string> refv = readFASTA(Input_ref, 0);
-            ref_orig = refv[0]; 
-        } else {
-            ref_orig = strings[ref_idx];
-            id = 1;
+            ref_orig = readRefFasta(Input_ref, 1);
+        } else{
+            ref_orig = readRefFasta(Input_strings, ref_idx+1);
         }
+
+        // if (Input_ref!=""){
+        //     vector<string> refv = readFASTA(Input_ref, 0);
+        //     ref_orig = refv[0]; 
+        // } else {
+        //     ref_orig = strings[ref_idx];
+        //     id = 1;
+        // }
         
         /* ---- Construct Reference String -------------------------------------------------------------------------------*/
 
