@@ -48,9 +48,12 @@ void print_help(){
     printf("        -n      <num seq>           Number of sequences to use in input.fasta\n");
     printf("        -r      <ref.fasta>         Fasta file containing one complete genomic sequence that will be used as the reference\n");
     printf("        -p      <out.phrases>       Output file that will contain all unique phrases. Results from different heuristics will be stored in \"out.phrases_[heuristic]\"\n");
-    printf("        -g      <out.gfa>         Output file that will contain the graph structure and the paths. This file will be in .gfa format\n");
+    printf("        -g      <out.gfa>           Output file that will contain the graph structure and the paths. This file will be in .gfa format\n");
     printf("        -s      <out.sources>       Output file that will contain all sources.\n");
     printf("        -c      <out.compressed>    Output file that will contain strings of phrases for each input sequence.\n");
+    printf("        -ilp                        Use ILP to assign sources\n");
+    printf("        -greedy                     Use greedy method to assign sources\n");
+
 }
 
 void print_version(){}
@@ -429,7 +432,7 @@ int main(int argc, char* argv[]){
         struct rusage r;
         getrusage(RUSAGE_SELF, &r);
 
-        cout << "RSS: " << r.ru_maxrss / 1024 << " MB" << endl;
+        cout << "RSS: " << (float) r.ru_maxrss / 1024 << " MB" << endl;
             // VG vg_graph;
 
             
