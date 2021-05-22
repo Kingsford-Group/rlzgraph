@@ -25,6 +25,11 @@ RLZ::RLZ(string ref){
 }
 
 
+// int RLZ::RLZFactor(string & filename, int numSeq){
+//     vector<Phrase*> compressed;
+
+// }
+
 /**
  * @brief Process the input string into phrases
  */

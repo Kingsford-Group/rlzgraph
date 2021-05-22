@@ -95,6 +95,13 @@ vector<string> readFASTA(string filename, int num_seq){
     return strings;
 }
 
+/**
+ * @brief Read only one entire reference string specified as refIdx.
+ * 
+ * @param filename 
+ * @param refIdx 
+ * @return string 
+ */
 string readRefFasta(string filename, int refIdx){
     fstream input(filename);
     if (!input.good()){
