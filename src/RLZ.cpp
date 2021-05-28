@@ -50,8 +50,8 @@ int RLZ::RLZFactor(ChunkLoader & loader){
 
     // load first character
     char nextChar = loader.next(true);
-    while (loader.checkStatus(false) == 0 || nextChar > 0){
-        cout << "[" << loader.buf.substr(0,20) << "]" <<endl;
+    while (nextChar > 0){
+        // cout << "[" << loader.buf.substr(0,20) << "]" <<endl;
     //     auto start = high_resolution_clock::now();
 
         // get one phrase per bwt query
@@ -63,9 +63,9 @@ int RLZ::RLZFactor(ChunkLoader & loader){
         // cerr << "Done for one phrase: " << p->start << "," << p->length << endl;
         // cerr << "Current length: " << length << endl;
         compressed.push_back(p);
-        cout << "Status: " << loader.checkStatus(false) << endl;
+        // cout << "Status: " << loader.checkStatus(false) << endl;
+        // cout << length << " " << totalLength << endl;
     }
-    cout << "=============== END OF STRING" <<endl;
 
     compressed_strings.push_back(compressed);
     numPhrases += compressed.size();
@@ -920,7 +920,7 @@ Phrase* RLZ::query_bwt(char * nextChar, ChunkLoader & loader){
         //found a match
         if (r+1-l > 0){
             length ++;
-            cout << currChar << endl;
+            // cout << currChar << endl;
             // strIt ++;
         } 
         else {

@@ -33,7 +33,7 @@ bool writeGraph = false;
 bool runGreedy = false;
 bool runILP = false;
 
-int Strings_to_use = -1;
+int Strings_to_use = -2;
 int ref_idx=0;
 
 int bufSize = 5000;
@@ -368,13 +368,13 @@ int main(int argc, char* argv[]){
 
         // get total number of sequences to factor
         int totalSequences = countStrings(Input_strings);
-        if (Strings_to_use!=-1)
+        if (Strings_to_use!=-2)
             totalSequences = Strings_to_use > totalSequences ? totalSequences : Strings_to_use;
         else if (Input_ref == "") totalSequences -= 1;
 
         cout << "Total sequences: " << totalSequences << endl;
         
-        ChunkLoader loader (Input_strings, totalSequences, ref_idx, bufSize);
+        ChunkLoader loader (Input_strings, Strings_to_use, ref_idx, bufSize);
 
         // if (Input_ref!=""){
         //     vector<string> refv = readFASTA(Input_ref, 0);
