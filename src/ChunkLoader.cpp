@@ -14,15 +14,6 @@ enum chunkStatus{
     EXCEEDNUMBER = -3
 };
 
-void printArray(vector<char> arr){
-    cout << "[";
-    for (auto item : arr){
-        cout << (int)item << ",";
-    }
-    cout << "]" << endl;
-}
-
-
 class ChunkLoader{
     public:
         string buf;
@@ -49,6 +40,50 @@ class ChunkLoader{
             // buf(1024,-1);
         }
 
+        /**
+         * @brief Check if the current position in file is the start of a new string
+         * 
+         * @param newStart 
+         * @return int 
+         */
+        int checkStatus(bool newStart){
+            // cout << "Currpos: "<< currpos << endl;
+            // cout << "Currpos2: " << currpos << endl;
+            // cout << "BufIdx: " << bufIdx << endl;
+            string line;
+
+            // need to load another buffer?
+            if ((bufIdx == 0 && buf[bufIdx] == ENDFILE) || bufIdx == bufSize){
+                
+                if (strIdx == numSeq){
+                    cout << "Exceeds number of sequence!" << endl;
+                    return EXCEEDNUMBER;
+                }
+
+                // peek next line
+                getline(inputFile, line);
+                inputFile.seekg(currpos, ios_base::beg);
+
+                // check for the start of a new sequence
+                if (line[0] == '>'){
+                    if (!newStart)
+                        return ENDSTR;
+                } else if (currpos == -1)
+                       return ENDFILE;
+            } else if (buf[bufIdx] == '>'){
+                return ENDSTR;
+            } else if (buf[bufIdx] < 0){
+                return buf[bufIdx];
+            }
+            return 0;
+        }
+
+        /**
+         * @brief Returns the next character
+         * 
+         * @param newStart indicates if it is starting a new string. Will stop at ">" if false.
+         * @return char 
+         */
         char next(bool newStart){            
             string line;
 
@@ -68,7 +103,7 @@ class ChunkLoader{
                     if (line[0] == '>'){
                         if (!newStart){
                             inputFile.seekg(currpos, ios_base::beg);                            
-                            return -1;
+                            return ENDSTR;
                         } else{
                             strIdx += 1;
 
@@ -130,91 +165,91 @@ class ChunkLoader{
         }
 };
 
-int main(){
-    string fname = "/home/yutongq/RLZGraph/rlzgraph/test/ecoli_O157_50_1.fasta";
-    int numSeq = 50;
-    int refIdx = 60;
-    int bufSize = 5000;
-    ChunkLoader loader(fname, numSeq, refIdx, bufSize);
-    bool newStart = true; 
-    int counter = 0;
+// int main(){
+//     string fname = "/home/yutongq/RLZGraph/rlzgraph/test/ecoli_O157_50_1.fasta";
+//     int numSeq = 50;
+//     int refIdx = 60;
+//     int bufSize = 5000;
+//     ChunkLoader loader(fname, numSeq, refIdx, bufSize);
+//     bool newStart = true; 
+//     int counter = 0;
 
-    auto start = chrono::high_resolution_clock::now();
-    char cc = 0;
+//     auto start = chrono::high_resolution_clock::now();
+//     char cc = 0;
 
-    // string ofname_1 = "/home/yutongq/RLZGraph/rlzgraph/test/chunk_test_1.txt";
-    // string ofname_2 = "/home/yutongq/RLZGraph/rlzgraph/test/chunk_test_2.txt";
+//     // string ofname_1 = "/home/yutongq/RLZGraph/rlzgraph/test/chunk_test_1.txt";
+//     // string ofname_2 = "/home/yutongq/RLZGraph/rlzgraph/test/chunk_test_2.txt";
 
-    // ofstream f1(ofname_1);
-    // ofstream f2(ofname_2);
+//     // ofstream f1(ofname_1);
+//     // ofstream f2(ofname_2);
     
-    while (true){
-        string s;
-        int innerCounter = 0;
-        char c;
-        while(true){
-            c = loader.next(newStart);
-            if (newStart)
-                newStart = false;
-            if (c > 0){
-                // s += c;
-                innerCounter += 1;
-            }
-            else break;
-        }
+//     while (true){
+//         string s;
+//         int innerCounter = 0;
+//         char c;
+//         while(true){
+//             c = loader.next(newStart);
+//             if (newStart)
+//                 newStart = false;
+//             if (c > 0){
+//                 // s += c;
+//                 innerCounter += 1;
+//             }
+//             else break;
+//         }
 
-        newStart = true;
-        // cout << "[" << loader.buf <<"]" << endl;
-        // cout << "c " << (int)c << endl; 
-        if (c == ENDFILE || c == EXCEEDNUMBER){
-            cout << "status " << (int)c << endl;
-            break;
-        }
-        // cout << "SeqID " << loader.strIdx << endl;
-        // cout << loader.bufIdx << endl;
-        // assert(loader.strIdx < 49);
+//         newStart = true;
+//         // cout << "[" << loader.buf <<"]" << endl;
+//         // cout << "c " << (int)c << endl; 
+//         if (c == ENDFILE || c == EXCEEDNUMBER){
+//             cout << "status " << (int)c << endl;
+//             break;
+//         }
+//         // cout << "SeqID " << loader.strIdx << endl;
+//         // cout << loader.bufIdx << endl;
+//         // assert(loader.strIdx < 49);
 
-        // cout << "currpos " << loader.currpos << endl;
-        // cout << innerCounter << endl;
-        // // f1 << s << endl;
-        // // f1 << endl << "SeqID" << loader.strIdx << endl;
-    }
+//         // cout << "currpos " << loader.currpos << endl;
+//         // cout << innerCounter << endl;
+//         // // f1 << s << endl;
+//         // // f1 << endl << "SeqID" << loader.strIdx << endl;
+//     }
 
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
+//     auto stop = high_resolution_clock::now();
+//     auto duration = duration_cast<microseconds>(stop - start);
 
-    cout << "Time taken by chunk "<< duration.count() << " microseconds." << endl;
+//     cout << "Time taken by chunk "<< duration.count() << " microseconds." << endl;
     
 
-    start = high_resolution_clock::now();
-    string line;
-    vector<string> strings;
-    ifstream input(fname);
-    string currString;
-    while(getline(input, line)){
-        counter +=1;
-        if (line[0] != '>'){
-            currString += line;
-            line.clear();
-        } else if (currString != ""){
-            strings.push_back(currString);
-            // f2 << currString << endl;
-            // cout << currString.length() << endl;
-            currString.clear();
-            line.clear();
-        }
-    }
+//     start = high_resolution_clock::now();
+//     string line;
+//     vector<string> strings;
+//     ifstream input(fname);
+//     string currString;
+//     while(getline(input, line)){
+//         counter +=1;
+//         if (line[0] != '>'){
+//             currString += line;
+//             line.clear();
+//         } else if (currString != ""){
+//             strings.push_back(currString);
+//             // f2 << currString << endl;
+//             // cout << currString.length() << endl;
+//             currString.clear();
+//             line.clear();
+//         }
+//     }
 
-    for (string s : strings){
-        for (char c : s){
-            counter += 1;
-        }
-    }
-    // strings.push_back(currString);
-    // f2 << currString << endl;
-    // cout << currString.length() << endl;
-    stop = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(stop-start);
-    cout << "Time taken by default "<< duration.count() << " microseconds." << endl;
+//     for (string s : strings){
+//         for (char c : s){
+//             counter += 1;
+//         }
+//     }
+//     // strings.push_back(currString);
+//     // f2 << currString << endl;
+//     // cout << currString.length() << endl;
+//     stop = high_resolution_clock::now();
+//     duration = duration_cast<microseconds>(stop-start);
+//     cout << "Time taken by default "<< duration.count() << " microseconds." << endl;
 
-}
+// }

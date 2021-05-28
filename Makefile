@@ -4,7 +4,6 @@ SDSL=$(HOME)/lib/libsdsl.a
 SORTLIB=$(HOME)/lib/libdivsufsort.a
 SORTLIB_64=$(HOME)/lib/libdivsufsort64.a
 
-
 CC = gcc
 CXX = g++
 
@@ -17,13 +16,18 @@ LDLIBS = $(LDADD)
 LDLIBS += -L $(GUROBI)/lib -lgurobi_g++5.2 -l$(GUROBI_LIB)
 LDFLAGS += -Wl,-rpath,$(GUROBI)/lib
 
-SRCS=src/RLZ.hpp src/RLZ.cpp src/RLZGraph.hpp src/RLZGraph.cpp src/rlzmain.cpp
+SRCS=src/ChunkLoader.cpp src/RLZ.hpp src/RLZ.cpp src/RLZGraph.hpp src/RLZGraph.cpp src/rlzmain.cpp
 
 all: bin/rlzgraph 
 
 bin/rlzgraph: $(subst .cpp,.o,$(SRCS))
 	mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+bin/ChunkLoader: src/ChunkLoader.cpp
+	mkdir -p bin
+	$(CXX) $(CXXFLAGS) -o $@ $^ 
+
 
 clean:
 	rm -f bin/rlzgraph src/*.o

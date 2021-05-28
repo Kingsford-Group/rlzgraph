@@ -31,6 +31,49 @@ RLZ::RLZ(string ref){
 // }
 
 /**
+ * @brief Process one input sequence into phrases
+ */
+int RLZ::RLZFactor(ChunkLoader & loader){
+
+    // //reverse the query
+    // string revQuery;
+    // revQuery.assign(to_process.rbegin(), to_process.rend());
+
+    // cout << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << endl;
+    // csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", csa);
+
+    // the compressed string
+    vector<Phrase*> compressed;
+
+    // auto strIt = to_process.begin();
+    int length = 0;
+
+    // load first character
+    char nextChar = loader.next(true);
+    while (loader.checkStatus(false) == 0 || nextChar > 0){
+        cout << "[" << loader.buf.substr(0,20) << "]" <<endl;
+    //     auto start = high_resolution_clock::now();
+
+        // get one phrase per bwt query
+        Phrase * p = query_bwt(&nextChar, loader);
+        // auto end = high_resolution_clock::now();
+        // auto duration = duration_cast<microseconds>(end - start);
+        // cout << duration.count()<< "," << p->length << endl;
+        length += p->length;
+        // cerr << "Done for one phrase: " << p->start << "," << p->length << endl;
+        // cerr << "Current length: " << length << endl;
+        compressed.push_back(p);
+        cout << "Status: " << loader.checkStatus(false) << endl;
+    }
+    cout << "=============== END OF STRING" <<endl;
+
+    compressed_strings.push_back(compressed);
+    numPhrases += compressed.size();
+
+    return compressed.size();
+}
+
+/**
  * @brief Process the input string into phrases
  */
 int RLZ::RLZFactor(string & to_process){
@@ -788,6 +831,133 @@ Phrase* RLZ::check_alphabet(string::iterator & strIt){
     }
 
     else return 0;
+}
+
+/**
+ * @brief check if the current character is in the reference alphabet. 
+ * If not, check if it is recorded as the new character and the algorithm will not query BWT
+ * 
+ * @param currChar 
+ * @return Phrase* 0 if in alphabet
+ */
+Phrase* RLZ::check_alphabet(char currChar){
+    bool inAlphabet = false;
+
+    // iterate through alphabet of the reference
+    for(int i=1; i<csa.sigma; i++){
+        if (csa.comp2char[i] == currChar){
+            inAlphabet = true;
+            break;
+        }
+    }
+
+    // see if it is already recorded as a new alphabet.
+    if (!inAlphabet){
+        auto find = newChar_toIdx.find(currChar);
+        int idx = 0;
+
+        // if not found, add to the end of the newChar hashmap with the new length
+        if (find == newChar_toIdx.end()){
+            newChar_toIdx[currChar] = totalLength;
+            newChar_toChar[totalLength] = currChar;
+            totalLength++;
+        }
+
+        // create phrase containing the current character
+        idx = newChar_toIdx[currChar];
+        auto ret_cp = create_phrase(idx, 1);
+        Phrase * p = ret_cp.first;
+
+        vector<int> start_loc{idx};
+        vector<bool> rev{false};
+        map<int, int> loc_to_idx;
+        loc_to_idx[idx] = 0;
+
+        // create or find the corresponding source
+        if (ret_cp.second){
+            Source * source = new Source {p, make_pair(-1,-1), start_loc,rev,1,loc_to_idx};
+            auto Sret = sources.insert(source);
+            totalBoundaries += 1; 
+        }
+        return p;
+    }
+
+    else return 0;
+}
+
+Phrase* RLZ::query_bwt(char * nextChar, ChunkLoader & loader){
+
+    // load the first character
+    // char currChar = loader.next(newStart);
+
+    // check if the first character is in the alphabet
+    Phrase * alphabetCheck = check_alphabet(*nextChar);
+    if (alphabetCheck != 0) return alphabetCheck;
+
+    // // start BWT query
+    // string::iterator strStart = strIt;
+
+    // stores current l and r
+    size_type l = 0;
+    size_type r = csa.size()-1;
+
+    // stores final l and r
+    int l_res = 0;
+    int r_res = r;
+
+    // stores matched length
+    int length = 0;
+    char currChar = *nextChar;
+
+    while(true){
+        l_res = l;
+        r_res = r;
+
+        backward_search(csa, l, r, currChar, l, r);
+
+        // cerr << "In bwt query loop: " << l <<", "<< r << ", "<< *strIt << endl;
+
+        //found a match
+        if (r+1-l > 0){
+            length ++;
+            cout << currChar << endl;
+            // strIt ++;
+        } 
+        else {
+            break;
+        }
+        currChar = loader.next(false);
+        *nextChar = currChar;
+    }
+
+    // assign to the leftmost
+    vector<int> start_loc;
+    pair<int, int> beg_interval {l_res, r_res};
+    vector<bool> reversed;
+    map<int, int> loc_to_idx;
+    // int min_loc = INT_MAX;
+    // for(int i = l_res; i<=r_res; i++){
+    //     int pos = csa[i];
+    //     start_loc.push_back(pos);
+    //     if (pos < min_loc) min_loc = pos;
+    // }
+
+    //assign to the smallest
+    int min_loc = csa[l_res];
+
+    // get the phrase pointer by either creating a new one or finding the existing one
+    auto Pret = create_phrase(min_loc, length);
+    Phrase * p = Pret.first;
+
+    // create or find the corresponding source
+    if (Pret.second){
+        Source * source = new Source {p, beg_interval, start_loc, reversed, length, loc_to_idx};
+        auto Sret = sources.insert(source);
+        totalBoundaries += source->beg_interval.second - source->beg_interval.first +1; 
+    }
+    
+    return p;
+
 }
 
 Phrase* RLZ::query_bwt(string::iterator & strIt, string::iterator end){

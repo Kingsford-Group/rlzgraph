@@ -333,7 +333,7 @@ void RLZGraph::write_complete_graph(ofstream & out){
     }
 
     //paths
-    /*
+    
     int i = 0;
     for (RLZPath* p : paths){
         out << "P\t" << i << "\t";
@@ -350,7 +350,7 @@ void RLZGraph::write_complete_graph(ofstream & out){
         }
         out << endl;
     }
-    */
+    
 
     // edges
     for (RLZEdge* e:Edges){
