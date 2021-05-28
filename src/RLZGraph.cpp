@@ -233,7 +233,7 @@ vector<RLZPath*> RLZGraph::create_paths(){
     /* Create reference paths */
     RLZPath * refPath = new RLZPath();
     for (RLZNode * n : Nodes){
-        if (n->nodeIdx > 1 && n->refIdx <= actualRefLength - 1){
+        if (n->nodeIdx > 2 && n->refIdx <= actualRefLength - 1){
             refPath->addNode(n);
             // n->print(cout);
         }
@@ -333,7 +333,7 @@ void RLZGraph::write_complete_graph(ofstream & out){
     }
 
     //paths
-    /*
+    
     int i = 0;
     for (RLZPath* p : paths){
         out << "P\t" << i << "\t";
@@ -350,7 +350,6 @@ void RLZGraph::write_complete_graph(ofstream & out){
         }
         out << endl;
     }
-    */
 
     // edges
     for (RLZEdge* e:Edges){
