@@ -119,7 +119,7 @@ string readRefFasta(string filename, int refIdx){
                 break;
             }
         }
-        if (id == refIdx){
+        else if (id == refIdx){
             if (!line.empty()){
                 if(line.find(' ')!=string::npos){
                     ref.clear();
