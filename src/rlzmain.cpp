@@ -374,6 +374,8 @@ int main(int argc, char* argv[]){
 
         cout << "Total sequences: " << totalSequences << endl;
         
+        // include all the sequences in input file if a reference file is provided
+        ref_idx = (Input_ref== "") ? ref_idx : -1;
         ChunkLoader loader (Input_strings, Strings_to_use, ref_idx, bufSize);
         assert(loader.inputFile.good());
 
