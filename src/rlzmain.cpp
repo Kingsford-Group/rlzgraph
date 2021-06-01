@@ -375,6 +375,7 @@ int main(int argc, char* argv[]){
         cout << "Total sequences: " << totalSequences << endl;
         
         ChunkLoader loader (Input_strings, Strings_to_use, ref_idx, bufSize);
+        assert(loader.inputFile.good());
 
         // if (Input_ref!=""){
         //     vector<string> refv = readFASTA(Input_ref, 0);

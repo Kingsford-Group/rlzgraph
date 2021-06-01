@@ -24,7 +24,7 @@ class ChunkLoader{
         int numSeq;
         int refIdx;
 
-        int currpos;
+        long long currpos;
 
         ifstream inputFile;
 

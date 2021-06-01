@@ -64,8 +64,10 @@ int RLZ::RLZFactor(ChunkLoader & loader){
         // cerr << "Current length: " << length << endl;
         compressed.push_back(p);
         // cout << "Status: " << loader.checkStatus(false) << endl;
-        // cout << length << " " << totalLength << endl;
     }
+    cout << loader.currpos << " " << loader.bufIdx << endl;
+    cout << (int) nextChar << endl;
+    cout << length << " " << totalLength << endl;
 
     compressed_strings.push_back(compressed);
     numPhrases += compressed.size();
