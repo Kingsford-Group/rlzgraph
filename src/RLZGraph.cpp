@@ -334,22 +334,24 @@ void RLZGraph::write_complete_graph(ofstream & out){
 
     //paths
     
-    int i = 0;
-    for (RLZPath* p : paths){
-        out << "P\t" << i << "\t";
-        for(int idx=0; idx < p->path.size(); idx++){
-            out << p->path[idx]->nodeIdx;
-            if (p->reversed[idx] == true){
-                out << "-";
-            }else{
-                out << "+";
-            }
-            if (idx!=p->path.size()-1){
-                out << ",";
-            }
-        }
-        out << endl;
-    }
+    // int i = 0;
+    // for (RLZPath* p : paths){
+    //     out << "P\t" << i << "\t";
+    //     for(int idx=0; idx < p->path.size(); idx++){
+    //         out << p->path[idx]->nodeIdx;
+    //         if (p->reversed[idx] == true){
+    //             out << "-";
+    //         }else{
+    //             out << "+";
+    //         }
+    //         if (idx!=p->path.size()-1){
+    //             out << ",";
+    //         }
+    //     }
+    //     out << endl;
+    //     i++;
+    // }
+    
 
     // edges
     for (RLZEdge* e:Edges){

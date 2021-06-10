@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <climits>
 
+#include "ChunkLoader.cpp"
+
 using namespace std;
 using namespace sdsl;
 
@@ -261,6 +263,14 @@ class RLZ{
      * @return int the number of phrases
      */
     int RLZFactor(string & to_process);
+
+    /**
+     * @brief Factor the input string into phrases
+     * 
+     * @param loader  Chunk loader
+     * @return int the number of phrases
+     */
+    int RLZFactor(ChunkLoader & loader);
     
     /**
      * @brief Query the bwt until it cannot go further. Creates a source if it has not been created.
@@ -270,6 +280,15 @@ class RLZ{
      * @return Phrase* -- returned source
      */
     Phrase* query_bwt(string::iterator & strIt, string::iterator end);
+
+    /**
+     * @brief Query the bwt until it cannot go further. Creates a source if it has not been created.
+     * 
+     * @param nextChar -- first char to read, stored from the last iteration
+     * @param loader -- Chunk loader
+     * @return Phrase* -- returned source
+     */
+    Phrase* query_bwt(char * nextChar, ChunkLoader & loader);
 
     /**
      * @brief Substitute each phrase with corresponding substring
@@ -418,6 +437,13 @@ class RLZ{
      */
     Phrase* check_alphabet(string::iterator & strIt);
 
+    /**
+     * @brief Check if the alphabet contains the current character. If not, create a new phrase from the new alphabet
+     * 
+     * @param currChar -- the first character to check
+     * @return Phrase* 
+     */
+    Phrase* check_alphabet(char currChar);
     
     char revCompHelper(char c){
         switch (c){

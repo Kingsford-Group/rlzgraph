@@ -33,8 +33,10 @@ bool writeGraph = false;
 bool runGreedy = false;
 bool runILP = false;
 
-int Strings_to_use = 0;
+int Strings_to_use = -2;
 int ref_idx=0;
+
+int bufSize = 5000;
 
 void print_help(){
     printf("-------------------------------------------------\n");
@@ -93,6 +95,50 @@ vector<string> readFASTA(string filename, int num_seq){
         strings.push_back(content);
     cout << "Read " << strings.size() << " strings. "<< endl;
     return strings;
+}
+
+/**
+ * @brief Read only one entire reference string specified as refIdx.
+ * 
+ * @param filename 
+ * @param refIdx 
+ * @return string 
+ */
+string readRefFasta(string filename, int refIdx){
+    fstream input(filename);
+    if (!input.good()){
+        cerr << "BAD INPUT!: " << filename << endl;
+        exit(1);
+    }
+    string ref, line;
+    int id = 0;
+    while (getline(input, line)){
+        if (line[0] == '>'){
+            id +=1;
+            if (id > refIdx){
+                break;
+            }
+        }
+        else if (id == refIdx){
+            if (!line.empty()){
+                if(line.find(' ')!=string::npos){
+                    ref.clear();
+                } else {
+                    transform(line.begin(), line.end(), line.begin(), ::toupper);
+                    ref+=line;
+                }
+            }
+        }
+    }
+
+    if (ref == ""){
+        cerr << "!!! Reference not found. Maybe refIdx is too large." << endl;
+        exit(-1);
+    }
+
+    cout << "Read Reference with " << ref.length() << " chars." << endl; 
+    input.close();
+    return ref;
 }
 
 
@@ -274,6 +320,32 @@ string reverseComp(string toreverse){
     return s;
 }
 
+/**
+ * @brief Count the number of sequences in a FASTA file
+ * 
+ * @param fname -- input file name
+ * @return int  -- number of sequences
+ */
+int countStrings(string filename){
+    fstream input(filename);
+    if (!input.good()){
+        cerr << "BAD INPUT!: " << filename << endl;
+        exit(1);
+    }
+    string line;
+    int count = 0;
+    int id = 0;
+    while (getline(input, line)){
+        
+        // increment when encountered header
+        if (line[0] == '>'){
+            count += 1;
+        }
+    }
+    return count;
+    input.close();
+}
+
 int main(int argc, char* argv[]){
 
     bool success = parse_argument(argc, argv);
@@ -284,17 +356,36 @@ int main(int argc, char* argv[]){
 
         string ref;
         string ref_orig;
-        vector<string> strings = readFASTA(Input_strings, Strings_to_use);
+        vector<string> strings;// = readFASTA(Input_strings, Strings_to_use);
         int start = 0;
         int id = 0;
 
         if (Input_ref!=""){
-            vector<string> refv = readFASTA(Input_ref, 0);
-            ref_orig = refv[0]; 
-        } else {
-            ref_orig = strings[ref_idx];
-            id = 1;
+            ref_orig = readRefFasta(Input_ref, 1);
+        } else{
+            ref_orig = readRefFasta(Input_strings, ref_idx+1);
         }
+
+        // get total number of sequences to factor
+        int totalSequences = countStrings(Input_strings);
+        if (Strings_to_use!=-2)
+            totalSequences = Strings_to_use > totalSequences ? totalSequences : Strings_to_use;
+        else if (Input_ref == "") totalSequences -= 1;
+
+        cout << "Total sequences: " << totalSequences << endl;
+        
+        // include all the sequences in input file if a reference file is provided
+        ref_idx = (Input_ref== "") ? ref_idx : -1;
+        ChunkLoader loader (Input_strings, Strings_to_use, ref_idx, bufSize);
+        assert(loader.inputFile.good());
+
+        // if (Input_ref!=""){
+        //     vector<string> refv = readFASTA(Input_ref, 0);
+        //     ref_orig = refv[0]; 
+        // } else {
+        //     ref_orig = strings[ref_idx];
+        //     id = 1;
+        // }
         
         /* ---- Construct Reference String -------------------------------------------------------------------------------*/
 
@@ -319,15 +410,21 @@ int main(int argc, char* argv[]){
         auto duration_ref = duration_cast<duration<double> >(end_ref - start_ref);
         cout << "Time (Ref Construction): " << duration_ref.count() << endl;
 
-        /* ----- Begin RLZ Factorization (default = smallest ) ----------------------------------------------------------------------------------------*/
+        /* ----- Begin RLZ Factorization (default = smallest ) ------------------------------------------------------------*/
         // sources are not set at this stage
 
         auto start_factor = high_resolution_clock::now();
-        for(int i = 0; i<strings.size(); i++){
-            if (id != 0 && i==ref_idx) continue;    // does not add ref string
-            rlz.RLZFactor(strings[i]);
+        // for(int i = 0; i<strings.size(); i++){
+        //     if (id != 0 && i==ref_idx) continue;    // does not add ref string
+        //     rlz.RLZFactor(strings[i]);
+        //     cout << "Done for " << i << endl;
+        // }
+
+        for (int i=0; i<totalSequences; i++){
+            rlz.RLZFactor(loader);
             cout << "Done for " << i << endl;
         }
+
         auto end_factor = high_resolution_clock::now();
         auto duration_factor = duration_cast<duration<double> >(end_factor - start_factor);
         cout << "Time (Factorization): " << duration_factor.count() << endl;
