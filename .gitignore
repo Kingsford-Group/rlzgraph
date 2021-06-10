@@ -1,4 +1,5 @@
-./testRLZhash/*
+./test/*
 ./src/*.o
+./bin/*
 ./lib/boost_1_66_0.tar.gz
 ./lib
