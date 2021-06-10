@@ -32,5 +32,17 @@ Optional Arguments:
         -c      <out.compressed>    Output file that will contain strings of phrases for each input sequence.
 ```
 
+## Updated repository with input streaming implementation
+Instead of loading the entire input string in memory as in the first version, the current implementation streams the input string during RLZ factorization. This change reduces the running time and the memory usage of the program. The updated running time and memory usage of RLZ-Graph on human chromosome 1 sequences are shown in the following table. Note that this is different from the results presented in the original paper.
+
+The commit that records the first stable version of the program (described in the original paper) can be found in [this commit](https://github.com/Kingsford-Group/rlzgraph/commit/ef7f26c9d36dd9c3b8ba5f6e75c09d2a23d56dca).
+
+|Number of sequences | Wall-clock running time (s) | Reident set size (RSS) (MB)|
+|--------------------|-----------------------------|----------------------------|
+|5                   | 776                         | 7373                       |
+|25                  | 2498                        | 7374                       |
+|50                  | 4647                        | 7374                       |
+|75                  | 6755                        | 8091                       |
+|100                 | 8873                        | 9993                       |
 
 
