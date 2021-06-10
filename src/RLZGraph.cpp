@@ -332,7 +332,7 @@ void RLZGraph::write_complete_graph(ofstream & out){
         out << "S\t" << n->nodeIdx << "\t" << n->seq << endl;
     }
 
-    // //paths
+    //paths
     
     // int i = 0;
     // for (RLZPath* p : paths){
